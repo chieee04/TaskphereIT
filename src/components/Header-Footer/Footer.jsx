@@ -16,7 +16,7 @@ const Footer = () => {
                     >
                         Terms of Service
                     </a>
-                </div>
+                </div> 
             </footer>
         </>
     );
