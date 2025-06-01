@@ -1,5 +1,5 @@
 import React from 'react'
-import Logo from '../../assets/img/Logo.png'
+import Logo from '../assets/img/Logo.png'
 const Header = () => {
   return (
     <div className='mb-3 p-3'>

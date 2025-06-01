@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserAuth } from "../Contex/AuthContext";
-import Footer from "../components/Header-Footer/Footer";
-import Header from "../components/Header-Footer/Header";
+import Footer from "./Footer";
+import Header from "./Header";
 import "../components/Style/Style.css";
 import Logo from "../assets/img/Logo.png"; 
 import Logo1 from "../assets/img/Dct-Logo.png";
