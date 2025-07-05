@@ -1,79 +1,107 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import { UserAuth } from '../Contex/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { UserAuth } from '../Contex/AuthContext'; 
 
-const Sidebar = () => {
-    const [collapsed, setCollapsed] = useState(true);
-    const [activeItem, setActiveItem] = useState('Dashboard'); // ✅ Pre-selected item
+const Sidebar = ({ activeItem, onSelect }) => {
+  const [collapsed, setCollapsed] = useState(false);
+  const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
 
-    const toggleSidebar = () => {
-        setCollapsed(!collapsed);
-    };
+  const { user } = UserAuth(); // 
 
-    const menuItems = [
-        { icon: 'bi-speedometer2', label: 'Dashboard' },
-        { icon: 'bi-person-plus', label: 'Enroll' },
-        { icon: 'bi-person-badge', label: 'Student Credentials' },
-        { icon: 'bi-person-workspace', label: 'Adviser Credentials' },
-        { icon: 'bi-people', label: 'Teams' },
-        { icon: 'bi-calendar-week', label: 'Schedule' },
-        { icon: 'bi-arrow-left-right', label: 'Role Transfer' }
-    ];
+  const toggleSidebar = () => {
+    setCollapsed(!collapsed);
+  };
 
-    const { session, signOut } = UserAuth();
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const handleSignOut = async (e) => {
-        e.preventDefault();
-        try {
-            await signOut();
-            navigate("/");
-        } catch (err) {
-            console.error(err);
-        }
-    };
+  const handleSignOut = async (e) => {
+    e.preventDefault();
+    navigate('/');
+  };
 
-    return (
-        <div
-            className="d-flex flex-column bg-light p-2 border-end vh-100"
-            style={{ width: collapsed ? '70px' : '250px', transition: 'width 0.3s' }}
+  const renderMenuItem = (icon, label, onClick, isActive = false) => (
+    <li className="nav-item mb-1">
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          onClick();
+        }}
+        className={`nav-link d-flex align-items-center rounded ${
+          isActive ? 'bg-primary text-white' : ''
+        }`}
+        style={{
+          transition: 'all 0.2s',
+          color: isActive ? '#fff' : '#3B0304',
+          backgroundColor: isActive ? '' : 'transparent',
+        }}
+      >
+        <i
+          className={`bi ${icon} me-2`}
+          style={{ fontSize: '1.2rem', color: isActive ? '#fff' : '#3B0304' }}
+        ></i>
+        {!collapsed && <span>{label}</span>}
+        {!collapsed && label === 'Enroll' && (
+          <i
+            className={`ms-auto bi ${
+              showEnrollSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'
+            }`}
+            style={{ color: isActive ? '#fff' : '#3B0304' }}
+          ></i>
+        )}
+      </a>
+    </li>
+  );
+
+  if (!user || user.role !== 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className="d-flex flex-column bg-light p-2 vh-100"
+      style={{
+        width: collapsed ? '70px' : '250px',
+        transition: 'width 0.3s',
+      }}
+    >
+      <button
+        onClick={toggleSidebar}
+        className="btn btn-sm btn-outline-secondary mb-3 align-self-end"
+        title={collapsed ? 'Expand' : 'Collapse'}
+      >
+        <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`} />
+      </button>
+
+      <ul className="nav nav-pills flex-column mb-auto">
+        {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+        {renderMenuItem('bi-person-plus', 'Enroll', () => setShowEnrollSubmenu(!showEnrollSubmenu), activeItem === 'Enroll')}
+
+        {!collapsed && showEnrollSubmenu && (
+          <div className="ps-4">
+            {renderMenuItem('bi-mortarboard', 'Students', () => onSelect('Students'), activeItem === 'Students')}
+            {renderMenuItem('bi-person', 'Advisers', () => onSelect('Advisers'), activeItem === 'Advisers')}
+          </div>
+        )}
+
+        {renderMenuItem('bi-people', 'Teams', () => onSelect('Teams'), activeItem === 'Teams')}
+        {renderMenuItem('bi-calendar-week', 'Schedule', () => onSelect('Schedule'), activeItem === 'Schedule')}
+        {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('Role Transfer'), activeItem === 'Role Transfer')}
+      </ul>
+
+      <div className="mt-auto">
+        <button
+          className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center"
+          onClick={handleSignOut}
         >
-            <button
-                onClick={toggleSidebar}
-                className="btn btn-sm btn-outline-secondary mb-3"
-                title={collapsed ? 'Expand' : 'Collapse'}
-            >
-                <i className={`bi ${collapsed ? 'bi-arrow-right' : 'bi-arrow-left'}`}></i>
-            </button>
-
-            <ul className="nav nav-pills flex-column mb-auto">
-                {menuItems.map((item, index) => (
-                    <li className="nav-item mb-2" key={index}>
-                        <a
-                            href="#"
-                            className={`nav-link d-flex align-items-center ${activeItem === item.label ? 'active bg-primary text-white' : 'text-dark'}`}
-                            onClick={() => setActiveItem(item.label)}
-                        >
-                            <i className={`bi ${item.icon} me-2`} style={{ fontSize: '1.2rem' }}></i>
-                            {!collapsed && <span>{item.label}</span>}
-                        </a>
-                    </li>
-                ))}
-            </ul>
-
-            <div className="mt-auto">
-                <button
-                    className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center"
-                    onClick={handleSignOut}
-                >
-                    <i className="bi bi-box-arrow-right"></i>
-                    {!collapsed && <span className="ms-2">Logout</span>}
-                </button>
-            </div>
-        </div>
-    );
+          <i className="bi bi-box-arrow-right"></i>
+          {!collapsed && <span className="ms-2">Sign Out</span>}
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default Sidebar;
