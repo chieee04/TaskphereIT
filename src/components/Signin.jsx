@@ -7,6 +7,7 @@ import "../components/Style/Style.css";
 import Logo1 from "../assets/img/Dct-Logo.png";
 import Logo2 from "../assets/img/Costum.png";
 import { UserAuth } from "../Contex/AuthContext";
+import { supabase } from "../supabaseClient"; // ⬅️ import Supabase client
 
 const Signin = () => {
   const [userID, setUserID] = useState("");
@@ -15,7 +16,7 @@ const Signin = () => {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = UserAuth(); // ⬅️ Use context login
+  const { login } = UserAuth(); 
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -23,29 +24,20 @@ const Signin = () => {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:5000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          student_id: userID,
-          password,
-        }),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        password,
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        login(result.user); // ⬅️ Store session in context
-        navigate("/dashboard");
-      } else {
+      if (error) {
         Swal.fire({
           icon: "error",
           title: "Oops...",
-          text: result.error.message || "Invalid credentials",
+          text: error.message || "Invalid credentials",
         });
-        setError(result.error.message);
+        setError(error.message);
+      } else {
+        login(data.user);
+        navigate("/dashboard");
       }
     } catch (err) {
       Swal.fire({
@@ -71,15 +63,15 @@ const Signin = () => {
 
             <div className="mb-4 text-left">
               <label htmlFor="userID" className="block font-medium mb-1">
-                User ID
+                Email
               </label>
               <input
                 onChange={(e) => setUserID(e.target.value)}
                 className="w-full p-3 border rounded"
-                type="text"
+                type="email"
                 name="userID"
                 id="userID"
-                placeholder="Enter your user ID"
+                placeholder="Enter your email"
               />
             </div>
 

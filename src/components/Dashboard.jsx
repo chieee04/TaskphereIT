@@ -29,7 +29,7 @@ const Dashboard = () => {
         <Sidebar activeItem={activePage} onSelect={setActivePage} />
         <div className="flex-grow-1 p-3 overflow-auto">
           {/* ✅ Role 0 (Admin Only) */}
-          {user?.role === 0 && (
+          {user?.id === "366f087f-1186-4edb-bd1c-890db28eb94c" && (
             <>
               {activePage === 'Students' && <Member />}
               {activePage === 'Advisers' && <Advisers />}
@@ -46,31 +46,23 @@ const Dashboard = () => {
 
 
           {/* ✅ Role 3 (Manager Only) */}
-          {user?.role === 3 && (
+          {/* {user?.role === 3 && (
             <>
               {activePage === 'Dashboard' && <ManagerDashboard />}
               {activePage === 'Tasks' && <ManagerTask />}
             </>
-          )}
+          )} */}
 
-
-          {/* ✅ Role 3 (Manager Only) */}
-          {user?.role === 3 && (
-            <>
-              {activePage === 'Dashboard' && <ManagerDashboard />}
-              {activePage === 'Tasks' && <ManagerTask />}
-            </>
-          )}
 
           {/* ✅ Role 1 (Member Only) */}
-          {user?.role === 1 && (
+          {/* {user?.role === 1 && (
             <>
               {activePage === 'Tasks' && <MemberTask />}
               {activePage === 'Tasks Allocation' && <MemberAllocation />}
               {activePage === 'Adviser Tasks' && <MemberAdviserTasks />}
               {activePage === 'Tasks Board' && <MemberTasksBoard />}
             </>
-          )}
+          )} */}
         </div>
       </div>
       <Footer />

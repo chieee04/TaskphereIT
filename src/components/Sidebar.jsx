@@ -1,19 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../Contex/AuthContext';
-
+import { supabase } from '../supabaseClient';
 const Sidebar = ({ activeItem, onSelect }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   const { user } = UserAuth();
   const navigate = useNavigate();
 
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
-  };
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (user?.id) {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('uid', user.id)
+          .single();
+
+        if (!error && data) {
+          setUserRole(data.role);
+        } else {
+          console.error('Error fetching role:', error);
+        }
+      }
+    };
+
+    fetchRole();
+  }, [user]);
+
+  const toggleSidebar = () => setCollapsed(!collapsed);
 
   const handleSignOut = async (e) => {
     e.preventDefault();
@@ -56,51 +75,44 @@ const Sidebar = ({ activeItem, onSelect }) => {
 
   let sidebarItems = [];
 
-  // ✅ Role 0 → Admin Sidebar
-  if (user.role === 0) {
-  sidebarItems = (
-    <>
-      {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-      {renderMenuItem('bi-person-plus', 'Enroll', () => setShowEnrollSubmenu(!showEnrollSubmenu), activeItem === 'Enroll')}
+  // ✅ Role 0 → Admin
+  if (userRole === 0) {
+    sidebarItems = (
+      <>
+        {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+        {renderMenuItem('bi-person-plus', 'Enroll', () => setShowEnrollSubmenu(!showEnrollSubmenu), activeItem === 'Enroll')}
+        {!collapsed && showEnrollSubmenu && (
+          <div className="ps-4">
+            {renderMenuItem('bi-mortarboard', 'Students', () => onSelect('Students'), activeItem === 'Students')}
+            {renderMenuItem('bi-person', 'Advisers', () => onSelect('Advisers'), activeItem === 'Advisers')}
+          </div>
+        )}
+        {renderMenuItem('bi-key', 'Students Credentials', () => onSelect('StudentCredentials'), activeItem === 'StudentCredentials')}
+        {renderMenuItem('bi-lock', 'Advisers Credentials', () => onSelect('AdviserCredentials'), activeItem === 'AdviserCredentials')}
+        {renderMenuItem('bi-people', 'Teams', () => onSelect('Teams'), activeItem === 'Teams')}
+        {renderMenuItem('bi-calendar-week', 'Schedule', () => onSelect('Schedule'), activeItem === 'Schedule')}
+        {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('Role Transfer'), activeItem === 'Role Transfer')}
+      </>
+    );
+  }
 
-      {!collapsed && showEnrollSubmenu && (
-        <div className="ps-4">
-          {renderMenuItem('bi-mortarboard', 'Students', () => onSelect('Students'), activeItem === 'Students')}
-          {renderMenuItem('bi-person', 'Advisers', () => onSelect('Advisers'), activeItem === 'Advisers')}
-          
-        </div>
-      )}
-{renderMenuItem('bi-key', 'Students Credentials', () => onSelect('StudentCredentials'), activeItem === 'StudentCredentials')}
-          {renderMenuItem('bi-lock', 'Advisers Credentials', () => onSelect('AdviserCredentials'), activeItem === 'AdviserCredentials')}
-      {renderMenuItem('bi-people', 'Teams', () => onSelect('Teams'), activeItem === 'Teams')}
-      {renderMenuItem('bi-calendar-week', 'Schedule', () => onSelect('Schedule'), activeItem === 'Schedule')}
-      {renderMenuItem('bi-arrow-left-right', 'Role Transfer', () => onSelect('Role Transfer'), activeItem === 'Role Transfer')}
-    </>
-  );
-}
+  // ✅ Role 1 → Adviser
+  else if (userRole === 1) {
+    sidebarItems = (
+      <>
+        {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+        {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('Tasks Allocation'), activeItem === 'Tasks Allocation')}
+        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
+        {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
+        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
+        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+        {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
+      </>
+    );
+  }
 
-
-
-
-
-  // ✅ Role 1 → return null
-    else if (user.role === 1) {
-  sidebarItems = (
-    <>
-      {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-      {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('Tasks Allocation'), activeItem === 'Tasks Allocation')}
-      {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-      {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
-      {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
-      {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
-      {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-    </>
-  );
-}
-  
-  
-  // ✅ Role 3 → Manager Sidebar
-  else if (user.role === 3) {
+  // ✅ Role 3 → Manager
+  else if (userRole === 3) {
     sidebarItems = (
       <>
         {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
@@ -112,7 +124,7 @@ const Sidebar = ({ activeItem, onSelect }) => {
       </>
     );
   } else {
-    return null;
+    return null; // No role, no sidebar
   }
 
   return (
