@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { FaDownload, FaUserGraduate, FaEllipsisV } from "react-icons/fa";
 
+import "../Style/Instructor/AdviserCredentials.css"; // ✅ import css
+
 const AdviserCredentials = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [openDropdown, setOpenDropdown] = useState(null);
 
-  const dummyData = []; // later backend data dito
+  const dummyData = []; // backend data later
 
   const filteredData = dummyData.filter((row) =>
     Object.values(row)
@@ -18,20 +20,18 @@ const AdviserCredentials = () => {
     <div className="container-fluid px-4 py-3">
       <div className="row">
         <div className="col-12 col-md-10 col-lg-9">
+          
           {/* Title */}
-          <div
-            className="d-flex align-items-center mb-2"
-            style={{ color: "#3B0304" }}
-          >
+          <div className="d-flex align-items-center mb-2 adviser-cred-header">
             <FaUserGraduate className="me-2" size={18} />
             <strong>Adviser Credentials</strong>
           </div>
 
           {/* Divider */}
-          <hr style={{ borderTop: "2px solid #3B0304", opacity: "1", marginBottom: "8px" }} />
+          <hr className="adviser-cred-divider" />
 
           {/* Export button */}
-          <button className="btn border mb-3" style={{ color: "#3B0304" }}>
+          <button className="btn adviser-cred-btn mb-3">
             <FaDownload className="me-1" /> Export
           </button>
 
@@ -41,14 +41,13 @@ const AdviserCredentials = () => {
             placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="form-control mb-3"
-            style={{ maxWidth: "400px" }}
+            className="form-control adviser-cred-search mb-3"
           />
 
           {/* Table */}
-          <div className="rounded-4 border p-3 bg-white">
+          <div className="adviser-cred-table">
             <table className="table table-bordered table-sm align-middle mb-0">
-              <thead className="table-light text-center">
+              <thead>
                 <tr>
                   <th>NO</th>
                   <th>Last Name</th>
@@ -70,8 +69,7 @@ const AdviserCredentials = () => {
                     <td>{row.password}</td>
                     <td>
                       <button
-                        className="btn btn-sm"
-                        style={{ color: "#3B0304" }}
+                        className="btn btn-sm adviser-cred-action-btn"
                         onClick={() =>
                           setOpenDropdown(openDropdown === index ? null : index)
                         }
@@ -79,7 +77,7 @@ const AdviserCredentials = () => {
                         <FaEllipsisV />
                       </button>
                       {openDropdown === index && (
-                        <ul className="dropdown-menu show position-absolute">
+                        <ul className="dropdown-menu show adviser-cred-dropdown">
                           <li>
                             <button className="dropdown-item">✏️ Edit</button>
                           </li>
@@ -103,6 +101,7 @@ const AdviserCredentials = () => {
               </tbody>
             </table>
           </div>
+
         </div>
       </div>
     </div>

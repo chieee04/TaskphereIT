@@ -4,6 +4,8 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
 import { UserAuth } from '../Contex/AuthContext';
 import { supabase } from '../supabaseClient';
+import './Style/Sidebar.css'; 
+
 const Sidebar = ({ activeItem, onSelect }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
@@ -47,34 +49,21 @@ const Sidebar = ({ activeItem, onSelect }) => {
           e.preventDefault();
           onClick();
         }}
-        className={`nav-link d-flex align-items-center rounded ${
-          isActive ? 'bg-primary text-white' : ''
-        }`}
-        style={{
-          transition: 'all 0.2s',
-          color: isActive ? '#fff' : '#3B0304',
-          backgroundColor: isActive ? '' : 'transparent',
-        }}
+        className={`nav-link ${isActive ? 'active' : ''}`}
       >
-        <i
-          className={`bi ${icon} me-2`}
-          style={{ fontSize: '1.2rem', color: isActive ? '#fff' : '#3B0304' }}
-        ></i>
+        <i className={`bi ${icon} me-2`} />
         {!collapsed && <span>{label}</span>}
         {!collapsed && label === 'Enroll' && (
           <i
             className={`ms-auto bi ${
               showEnrollSubmenu ? 'bi-chevron-up' : 'bi-chevron-down'
             }`}
-            style={{ color: isActive ? '#fff' : '#3B0304' }}
-          ></i>
+          />
         )}
       </a>
     </li>
   );
-
-  let sidebarItems = [];
-
+/*
   // ✅ Role 0 → Admin
   if (userRole === 0) {
     sidebarItems = (
@@ -96,7 +85,7 @@ const Sidebar = ({ activeItem, onSelect }) => {
     );
   }
 
-  // ✅ Role 1 → Adviser
+  // ✅ Role 1 → Member
   else if (userRole === 1) {
     sidebarItems = (
       <>
@@ -126,30 +115,34 @@ const Sidebar = ({ activeItem, onSelect }) => {
   } else {
     return null; // No role, no sidebar
   }
+*/
+  let sidebarItems = (
+    <>
+      {renderMenuItem('bi-speedometer2', 'Dashboard',  () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+        {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('Tasks Allocation'), activeItem === 'Tasks Allocation')}
+        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
+        {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
+        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
+        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+        {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
+    </>
+  );
 
   return (
-    <div
-      className="d-flex flex-column bg-light p-2 vh-100"
-      style={{
-        width: collapsed ? '70px' : '250px',
-        transition: 'width 0.3s',
-      }}
-    >
+    <div className={`sidebar ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
       <button
         onClick={toggleSidebar}
-        className="btn btn-sm btn-outline-secondary mb-3 align-self-end"
+        className="btn btn-sm btn-outline-secondary sidebar-toggle"
         title={collapsed ? 'Expand' : 'Collapse'}
       >
         <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`} />
       </button>
 
-      <ul className="nav nav-pills flex-column mb-auto">
-        {sidebarItems}
-      </ul>
+      <ul className="nav nav-pills flex-column mb-auto">{sidebarItems}</ul>
 
       <div className="mt-auto">
         <button
-          className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center"
+          className="btn btn-outline-danger d-flex align-items-center justify-content-center sidebar-signout"
           onClick={handleSignOut}
         >
           <i className="bi bi-box-arrow-right"></i>

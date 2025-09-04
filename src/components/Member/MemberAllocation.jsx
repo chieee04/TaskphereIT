@@ -1,5 +1,7 @@
-import React from 'react'
+import React from "react";
 import taskIcon from "../../assets/tasks-allocation.png";         
+import "../Style/Member/MemberAllocation.css"; // hiwalay na CSS file
+
 const MemberAllocation = () => {
   return (
     <div className="page-wrapper">
@@ -66,66 +68,6 @@ const MemberAllocation = () => {
           </tbody>
         </table>
       </div>
-
-      <style>{`
-        * { box-sizing: border-box; }
-        .page-wrapper {
-          width: 100%;
-          padding: 40px 20px;
-        }
-        .section-title {
-          font-size: 20px;
-          font-weight: bold;
-          color: #3B0304;
-          margin-bottom: 5px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .icon-image {
-          width: 24px;
-          height: 24px;
-          object-fit: contain;
-        }
-        .divider {
-          border: none;
-          border-top: 2px solid #3B0304;
-          margin: 0 0 20px 0;
-        }
-        .allocation-container {
-          background: #fff;
-          border-radius: 20px;
-          padding: 0;
-          width: 100%;
-          overflow-x: auto;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          border: 1px solid #B2B2B2;
-        }
-        .allocation-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 14px;
-        }
-        .allocation-table th {
-          background-color: #fafafa;
-          font-weight: bold;
-          color: #000;
-          text-align: center;
-          padding: 12px 10px;
-        }
-        .allocation-table td {
-          color: #000;
-          padding: 12px 10px;
-          text-align: center;
-        }
-        .allocation-table tbody tr:nth-child(even) {
-          background-color: #fafafa;
-        }
-        .allocation-table td.role {
-          color: #3B0304;
-          font-weight: bold;
-        }
-      `}</style>
     </div>
   );
 };

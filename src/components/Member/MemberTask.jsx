@@ -1,4 +1,6 @@
+// src/components/member-task.jsx
 import React from "react";
+import "../Style/Member/MemberTask.css"; // hiwalay na CSS
 
 const MemberTask = () => {
   // Sample dummy data (pwede palitan ng dynamic data from DB)
@@ -32,76 +34,56 @@ const MemberTask = () => {
   ];
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "15px", color: "#3b0304" }}>
-        📋 Member Tasks
-      </h2>
+    <div className="member-task-page">
+      <h2 className="member-task-title">📋 Member Tasks</h2>
 
-      <div
-        style={{
-          border: "1px solid #b2b2b2",
-          borderRadius: "12px",
-          overflowX: "auto",
-        }}
-      >
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+      <div className="table-wrapper">
+        <table className="member-task-table">
           <thead>
-            <tr style={{ backgroundColor: "#f5f5f5", color: "#3b0304" }}>
-              <th style={thStyle}>NO</th>
-              <th style={thStyle}>Team</th>
-              <th style={thStyle}>Task</th>
-              <th style={thStyle}>Subtask</th>
-              <th style={thStyle}>Element</th>
-              <th style={thStyle}>Date Created</th>
-              <th style={thStyle}>Due Date</th>
-              <th style={thStyle}>Time</th>
-              <th style={thStyle}>Project Phase</th>
-              <th style={thStyle}>Revision NO</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Action</th>
+            <tr>
+              <th>NO</th>
+              <th>Team</th>
+              <th>Task</th>
+              <th>Subtask</th>
+              <th>Element</th>
+              <th>Date Created</th>
+              <th>Due Date</th>
+              <th>Time</th>
+              <th>Project Phase</th>
+              <th>Revision NO</th>
+              <th>Status</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {tasks.map((t, index) => (
-              <tr
-                key={index}
-                style={{
-                  backgroundColor: index % 2 === 0 ? "#fafafa" : "white",
-                  textAlign: "center",
-                }}
-              >
-                <td style={tdStyle}>{t.no}</td>
-                <td style={tdStyle}>{t.team}</td>
-                <td style={tdStyle}>{t.task}</td>
-                <td style={tdStyle}>{t.subtask}</td>
-                <td style={tdStyle}>{t.element}</td>
-                <td style={tdStyle}>{t.dateCreated}</td>
-                <td style={tdStyle}>{t.dueDate}</td>
-                <td style={tdStyle}>{t.time}</td>
-                <td style={tdStyle}>{t.projectPhase}</td>
-                <td style={tdStyle}>{t.revisionNo}</td>
-                <td style={tdStyle}>
+              <tr key={index} className={index % 2 === 0 ? "even-row" : "odd-row"}>
+                <td>{t.no}</td>
+                <td>{t.team}</td>
+                <td>{t.task}</td>
+                <td>{t.subtask}</td>
+                <td>{t.element}</td>
+                <td>{t.dateCreated}</td>
+                <td>{t.dueDate}</td>
+                <td>{t.time}</td>
+                <td>{t.projectPhase}</td>
+                <td>{t.revisionNo}</td>
+                <td>
                   <span
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: "20px",
-                      fontSize: "12px",
-                      fontWeight: "bold",
-                      color: "white",
-                      backgroundColor:
-                        t.status === "In Progress"
-                          ? "#f59e0b"
-                          : t.status === "Pending"
-                          ? "#ef4444"
-                          : "#10b981",
-                    }}
+                    className={`status-badge ${
+                      t.status === "In Progress"
+                        ? "status-progress"
+                        : t.status === "Pending"
+                        ? "status-pending"
+                        : "status-completed"
+                    }`}
                   >
                     {t.status}
                   </span>
                 </td>
-                <td style={tdStyle}>
-                  <button style={btnEdit}>✏️ Edit</button>
-                  <button style={btnDelete}>🗑 Delete</button>
+                <td>
+                  <button className="btn-edit">✏️ Edit</button>
+                  <button className="btn-delete">🗑 Delete</button>
                 </td>
               </tr>
             ))}
@@ -110,41 +92,6 @@ const MemberTask = () => {
       </div>
     </div>
   );
-};
-
-// Shared styles
-const thStyle = {
-  padding: "12px 10px",
-  whiteSpace: "nowrap",
-  borderBottom: "1px solid #ddd",
-};
-
-const tdStyle = {
-  padding: "12px 10px",
-  whiteSpace: "nowrap",
-  borderBottom: "1px solid #ddd",
-};
-
-const btnEdit = {
-  border: "none",
-  padding: "6px 10px",
-  margin: "0 3px",
-  borderRadius: "6px",
-  fontSize: "12px",
-  cursor: "pointer",
-  background: "#3b82f6",
-  color: "white",
-};
-
-const btnDelete = {
-  border: "none",
-  padding: "6px 10px",
-  margin: "0 3px",
-  borderRadius: "6px",
-  fontSize: "12px",
-  cursor: "pointer",
-  background: "#ef4444",
-  color: "white",
 };
 
 export default MemberTask;

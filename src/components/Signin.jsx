@@ -54,7 +54,6 @@ const Signin = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-100">
-      <Header />
       <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto h-full border rounded-lg py-5 px-3 main-bg-color">
         <div className="w-full md:w-1/2 p-6 flex items-center justify-center b-rd bg-white">
           <form onSubmit={handleSignIn} className="w-full max-w-md text-center">
@@ -115,7 +114,6 @@ const Signin = () => {
           />
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

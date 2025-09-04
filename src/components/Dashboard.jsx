@@ -24,7 +24,6 @@ const Dashboard = () => {
 
   return (
     <div className="d-flex flex-column vh-100">
-      <Header />
       <div className="d-flex flex-grow-1">
         <Sidebar activeItem={activePage} onSelect={setActivePage} />
         <div className="flex-grow-1 p-3 overflow-auto">
@@ -65,7 +64,6 @@ const Dashboard = () => {
           )} */}
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

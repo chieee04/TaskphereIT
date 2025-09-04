@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { v4 as uuidv4 } from "uuid";
 import Swal from "sweetalert2";
-import withReactContent from 'sweetalert2-react-content';
+import withReactContent from "sweetalert2-react-content";
 import {
   FaDownload,
   FaUpload,
@@ -11,225 +11,157 @@ import {
   FaEllipsisV,
 } from "react-icons/fa";
 
+import "../Style/Instructor/Enroll-Member.css"; // ✅ import css
+
 const Enroll = () => {
   const MySwal = withReactContent(Swal);
   const [importedData, setImportedData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [openDropdown, setOpenDropdown] = useState(null);
 
-
+  // ✅ Download sample Excel file
   const handleDownload = () => {
-    Swal.fire({
-      title: "Download template?",
-      showCancelButton: true,
-      confirmButtonText: "Download",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const worksheet = XLSX.utils.json_to_sheet([
-          {
-            student_id: "",
-            password: "",
-            first_name: "",
-            last_name: "",
-            middle_name: "",
-          },
-        ]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
-        const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-        const blob = new Blob([buffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-        saveAs(blob, "CCS_Enroll_Capstone_Students.xlsx");
-      }
-    });
+    const sampleData = [
+      {
+        student_id: "2025-0001",
+        password: "password123",
+        first_name: "Juan",
+        last_name: "Dela Cruz",
+        middle_name: "Santos",
+      },
+    ];
+    const ws = XLSX.utils.json_to_sheet(sampleData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Students");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([wbout], { type: "application/octet-stream" }), "students_template.xlsx");
   };
-const handleEditRow = (row, index) => {
-  MySwal.fire({
-    title: '<div style="color:#3B0304;"><i class="bi bi-pencil-square"></i> Edit Student</div>',
-    html: `
-      <div class="row text-start">
-        <div class="col-md-6 mb-2">
-          <label class="form-label">Last Name</label>
-          <input id="editLastName" class="form-control" value="${row.last_name || ''}" />
-        </div>
-        <div class="col-md-6 mb-2">
-          <label class="form-label">First Name</label>
-          <input id="editFirstName" class="form-control" value="${row.first_name || ''}" />
-        </div>
-        <div class="col-md-6 mb-2">
-          <label class="form-label">Middle Name</label>
-          <input id="editMiddleName" class="form-control" value="${row.middle_name || ''}" />
-        </div>
-        <div class="col-md-6 mb-2">
-          <label class="form-label">UserID</label>
-          <input id="editStudentId" class="form-control" value="${row.student_id || ''}" />
-        </div>
-        <div class="col-md-12 mb-2">
-          <label class="form-label">Password</label>
-          <input id="editPassword" class="form-control" value="${row.password || ''}" />
-        </div>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: 'Update',
-    cancelButtonText: 'Cancel',
-    confirmButtonColor: '#3B0304',
-    cancelButtonColor: '#aaa',
-    preConfirm: () => {
-      const updated = {
-        last_name: document.getElementById("editLastName").value.trim(),
-        first_name: document.getElementById("editFirstName").value.trim(),
-        middle_name: document.getElementById("editMiddleName").value.trim(),
-        student_id: document.getElementById("editStudentId").value.trim(),
-        password: document.getElementById("editPassword").value.trim()
-      };
 
-      if (!updated.student_id || !updated.password || !updated.first_name || !updated.last_name) {
-        Swal.showValidationMessage('All required fields must be filled');
-        return false;
-      }
+  // ✅ Import Excel file
+  const handleImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-      return updated;
-    }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const updatedData = [...importedData];
-      updatedData[index] = { ...updatedData[index], ...result.value };
-      setImportedData(updatedData);
-
-      Swal.fire({
-        icon: 'success',
-        title: '✓ Updated',
-        showConfirmButton: false,
-        timer: 1200
-      });
-    }
-  });
-};
-  const handleImport = (e) => {
-    const file = e.target.files[0];
     const reader = new FileReader();
-    reader.onload = (evt) => {
-      const wb = XLSX.read(evt.target.result, { type: "binary" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      setImportedData(data);
-      Swal.fire("Imported", "Excel file imported successfully", "success");
-    };
-    reader.readAsBinaryString(file);
-  };
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-  const handleUpload = async () => {
-  if (importedData.length === 0) {
-    Swal.fire("No data to upload", "", "warning");
-    return;
-  }
-
-  try {
-    // ✅ Get existing student_ids
-    const resExisting = await fetch("https://mrgbkfkafammosuxqikn.supabase.co/rest/v1/Students", {
-  headers: {
-    apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yZ2JrZmthZmFtbW9zdXhxaWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4MjgxNzcsImV4cCI6MjA2MzQwNDE3N30.Xjg2AbMpVQef522RP5tRGHQeeUapdJVCko_0Lls75zU",
-    Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yZ2JrZmthZmFtbW9zdXhxaWtuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4MjgxNzcsImV4cCI6MjA2MzQwNDE3N30.Xjg2AbMpVQef522RP5tRGHQeeUapdJVCko_0Lls75zU"
-  }
-});
-    const existing = await resExisting.json();
-    const existingIds = new Set(existing.map((row) => row.student_id));
-
-    // ✅ Filter duplicates
-    const cleanedData = importedData
-      .filter(row => row.student_id && row.password && !existingIds.has(row.student_id))
-      .map(row => ({
+      const processedData = jsonData.map((row) => ({
         id: uuidv4(),
-        role: 1,
-        ...row
+        student_id: row.student_id || "",
+        password: row.password || "",
+        first_name: row.first_name || "",
+        last_name: row.last_name || "",
+        middle_name: row.middle_name || "",
       }));
 
-    if (cleanedData.length === 0) {
-      Swal.fire("All entries already exist", "Nothing new to upload", "info");
+      setImportedData(processedData);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  // ✅ Save data (simulate upload)
+  const handleUpload = () => {
+    if (importedData.length === 0) {
+      MySwal.fire("No Data", "Please import students first.", "warning");
       return;
     }
+    MySwal.fire("Success", "Student data uploaded successfully!", "success");
+    setImportedData([]);
+  };
 
-    // ✅ Upload to server
-    const res = await fetch("http://localhost:5000/students/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(cleanedData),
-    });
-
-    const result = await res.json();
-
-    if (result.success) {
-      Swal.fire("Success", "New students uploaded", "success");
-      setImportedData([]);
-    } else {
-      Swal.fire("Upload Failed", result.message, "error");
-    }
-  } catch (err) {
-    Swal.fire("Server Error", err.message, "error");
-  }
-};
-
+  // ✅ Cancel import
   const handleCancel = () => {
-    Swal.fire({
-      title: "Cancel Import?",
-      text: "Imported data will be discarded.",
-      icon: "warning",
+    setImportedData([]);
+    setSearchTerm("");
+    MySwal.fire("Cancelled", "Import cancelled.", "info");
+  };
+
+  // ✅ Edit row
+  const handleEditRow = (row, index) => {
+    MySwal.fire({
+      title: "Edit Student",
+      html: `
+        <input id="student_id" class="swal2-input" value="${row.student_id}" placeholder="Student ID" />
+        <input id="password" class="swal2-input" value="${row.password}" placeholder="Password" />
+        <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder="First Name" />
+        <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder="Last Name" />
+        <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder="Middle Name" />
+      `,
       showCancelButton: true,
-      confirmButtonText: "Yes, discard",
+      confirmButtonText: "Save",
+      preConfirm: () => {
+        return {
+          student_id: document.getElementById("student_id").value,
+          password: document.getElementById("password").value,
+          first_name: document.getElementById("first_name").value,
+          last_name: document.getElementById("last_name").value,
+          middle_name: document.getElementById("middle_name").value,
+        };
+      },
     }).then((result) => {
       if (result.isConfirmed) {
-        setImportedData([]);
-        Swal.fire("Canceled", "Import canceled.", "info");
+        const updatedData = [...importedData];
+        updatedData[index] = { ...row, ...result.value };
+        setImportedData(updatedData);
+        MySwal.fire("Updated!", "Student updated successfully.", "success");
       }
     });
   };
 
- const filteredData = importedData.filter((row) =>
-  Object.values(row)
-    .join(" ")
-    .toLowerCase()
-    .includes(searchTerm.toLowerCase())
-);
-const handleDeleteRow = (indexToDelete) => {
-  Swal.fire({
-    title: "Delete this row?",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Yes, delete it",
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const updatedData = [...importedData];
-      updatedData.splice(indexToDelete, 1);
-      setImportedData(updatedData);
-      Swal.fire("Deleted!", "The row has been removed.", "success");
-    }
-  });
-};
+  // ✅ Delete row
+  const handleDeleteRow = (index) => {
+    MySwal.fire({
+      title: "Are you sure?",
+      text: "This will remove the student from the list.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const updatedData = importedData.filter((_, i) => i !== index);
+        setImportedData(updatedData);
+        MySwal.fire("Deleted!", "Student removed.", "success");
+      }
+    });
+  };
+
+  // ✅ Filtered data by search
+  const filteredData = importedData.filter(
+    (row) =>
+      row.student_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.middle_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="container-fluid px-4 py-3">
       <div className="row">
         <div className="col-12 col-md-10 col-lg-9">
-          <div className="d-flex align-items-center mb-3" style={{ color: "#3B0304" }}>
+          {/* Header */}
+          <div className="d-flex align-items-center mb-3 enroll-header">
             <FaUserGraduate className="me-2" size={18} />
             <strong>Enroll » Students » Import</strong>
           </div>
 
+          {/* Action buttons */}
           <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
-            <button className="btn border" style={{ color: "#3B0304" }} onClick={handleDownload}>
+            <button className="btn enroll-btn" onClick={handleDownload}>
               <FaDownload className="me-1" /> Download
             </button>
 
-            <label className="btn border mb-0" style={{ color: "#3B0304" }}>
+            <label className="btn enroll-btn mb-0">
               <FaUpload className="me-1" /> Import
               <input type="file" hidden accept=".xlsx,.xls" onChange={handleImport} />
             </label>
 
             <button
-              className="btn"
-              style={{ backgroundColor: "#3B0304", color: "white" }}
+              className="btn enroll-btn-save"
               onClick={handleUpload}
               disabled={importedData.length === 0}
             >
@@ -237,29 +169,27 @@ const handleDeleteRow = (indexToDelete) => {
             </button>
 
             <button
-              className="btn text-white"
-              style={{ backgroundColor: "#a5a5a5" }}
+              className="btn enroll-btn-cancel"
               onClick={handleCancel}
               disabled={importedData.length === 0}
             >
               Cancel
             </button>
-
-            
           </div>
 
+          {/* Search */}
           <input
             type="text"
             placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="form-control mb-3"
-            style={{ maxWidth: "400px" }}
+            className="form-control enroll-search mb-3"
           />
 
-          <div className="rounded-4 border p-3 bg-white">
+          {/* Table */}
+          <div className="enroll-table">
             <table className="table table-bordered table-sm align-middle mb-0">
-              <thead className="table-light text-center">
+              <thead>
                 <tr>
                   <th>NO</th>
                   <th>Student ID</th>
@@ -272,7 +202,7 @@ const handleDeleteRow = (indexToDelete) => {
               </thead>
               <tbody>
                 {filteredData.map((row, index) => (
-                  <tr key={index}>
+                  <tr key={row.id}>
                     <td>{index + 1}</td>
                     <td>{row.student_id}</td>
                     <td>{row.password}</td>
@@ -281,8 +211,7 @@ const handleDeleteRow = (indexToDelete) => {
                     <td>{row.middle_name}</td>
                     <td>
                       <button
-                        className="btn btn-sm"
-                        style={{ color: "#3B0304" }}
+                        className="btn btn-sm enroll-action-btn"
                         onClick={() =>
                           setOpenDropdown(openDropdown === index ? null : index)
                         }
@@ -290,18 +219,22 @@ const handleDeleteRow = (indexToDelete) => {
                         <FaEllipsisV />
                       </button>
                       {openDropdown === index && (
-                        <ul className="dropdown-menu show position-absolute">
+                        <ul className="dropdown-menu show enroll-dropdown">
                           <li>
-                            <button className="dropdown-item" onClick={() => handleEditRow(row, index)}>✏️ Edit</button>
-
+                            <button
+                              className="dropdown-item"
+                              onClick={() => handleEditRow(row, index)}
+                            >
+                              ✏️ Edit
+                            </button>
                           </li>
                           <li>
-                           <button
-  className="dropdown-item text-danger"
-  onClick={() => handleDeleteRow(index)}
->
-  🗑 Delete
-</button>
+                            <button
+                              className="dropdown-item text-danger"
+                              onClick={() => handleDeleteRow(index)}
+                            >
+                              🗑 Delete
+                            </button>
                           </li>
                         </ul>
                       )}
@@ -318,6 +251,7 @@ const handleDeleteRow = (indexToDelete) => {
               </tbody>
             </table>
           </div>
+
         </div>
       </div>
     </div>
