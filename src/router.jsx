@@ -18,6 +18,10 @@ import MemberTask from "./components/Member/MemberTask";
 import MemberTasksBoard from "./components/Member/MemberTaskBoard";
 import InstructorDashboard from "./components/Instructor/InstructorDashboard";
 import MemberDashboard from "./components/Member/MemberDashboard";
+import ManagerDashboard from "./components/ProjectManager/ManagerDashboard";
+
+import ManagerFinalDefense from "./components/ProjectManager/ManagerTask/ManagerFinalDefense";
+import ManagerFinalCreate from "./components/ProjectManager/ManagerTask/ManagerFinalCreate";
 
 export const router = createBrowserRouter([
 
@@ -26,8 +30,8 @@ export const router = createBrowserRouter([
     path: "/",
     element: <App />,   //may Header + Footer
     children: [
-      { index: true, element: <MemberDashboard /> }, // ito ang unang lalabas (default)
-      { path: "/MemberDashboard", element: <MemberDashboard /> },
+      { index: true, element: <ManagerDashboard /> }, // ito ang unang lalabas (default)
+      { path: "/ManagerDashboard", element: <ManagerDashboard /> },
 
   //-----------------------------------------------------------
   //-----------------------------------------------------------

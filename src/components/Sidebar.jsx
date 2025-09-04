@@ -118,8 +118,7 @@ const Sidebar = ({ activeItem, onSelect }) => {
 */
   let sidebarItems = (
     <>
-      {renderMenuItem('bi-speedometer2', 'Dashboard',  () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-        {renderMenuItem('bi-diagram-3', 'Tasks Allocation', () => onSelect('Tasks Allocation'), activeItem === 'Tasks Allocation')}
+      {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
         {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
         {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
         {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
@@ -127,6 +126,7 @@ const Sidebar = ({ activeItem, onSelect }) => {
         {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
     </>
   );
+  
 
   return (
     <div className={`sidebar ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>

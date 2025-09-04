@@ -6,7 +6,7 @@ import Member from './Instructor/Enroll-Member';
 import Teams from './Instructor/Teams';
 import Advisers from './Instructor/Adviser-Enroll';
 import ManagerDashboard from './ProjectManager/ManagerDashboard';
-import ManagerTask from './ProjectManager/ManagerTask';
+import ManagerTask from '../components/ProjectManager/ManagerTask/ManagerTask';
 import Schedule from './Instructor/Schedule';
 import ScheduleAdmin from './Instructor/TitleDefense';
 import { UserAuth } from '../Contex/AuthContext';
