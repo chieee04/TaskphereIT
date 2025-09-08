@@ -64,23 +64,35 @@ const Teams = () => {
       }, {});
 
       const adviserCards = Object.values(adviserGroups).map(group => {
-        const adviser = group.find(g => g.user_roles === 3);
-        const teams = [...new Set(
-  group.filter(m => m.group_number !== null).map(m => m.group_name) // ✅ gagamit ng group_name
-)];
-        const members = group.filter(m => m.user_roles !== 3).map(m => `${m.first_name} ${m.last_name}`);
-        return {
-          label: `${adviser.last_name}, ${adviser.first_name} ${adviser.middle_name || ''}`,
-          adviserId: adviser.id,
-          adviser_group: adviser.adviser_group,
-          teams,
-          members,
-        };
-      });
+  const adviser = group.find(g => g.user_roles === 3);
+
+  const teams = [...new Set(
+    group.filter(m => m.group_number !== null).map(m => m.group_name)
+  )];
+  const members = group.filter(m => m.user_roles !== 3).map(m => `${m.first_name} ${m.last_name}`);
+
+  if (!adviser) {
+    return {
+      label: `Adviser Not Found`,
+      adviserId: null,
+      adviser_group: group[0]?.adviser_group || null,
+      teams,
+      members,
+    };
+  }
+
+  return {
+    label: `${adviser.last_name}, ${adviser.first_name} ${adviser.middle_name || ''}`,
+    adviserId: adviser.id,
+    adviser_group: adviser.adviser_group,
+    teams,
+    members,
+  };
+});
 
       setManager(data.filter((a) => a.user_roles === 1 && a.group_number === null && a.adviser_group === null));
       setStudents(data.filter((s) => s.user_roles === 2 && s.group_number === null && s.adviser_group === null));
-      setAdvisers(data.filter((s) => s.user_roles === 3 && s.adviser_group === null));
+      setAdvisers(data.filter((s) => s.user_roles === 3));
       setTeamCards([...groupedTeamCards, ...adviserCards]);
       setAllAccounts(data);
       allAccountsRef.current = data;
@@ -414,7 +426,12 @@ container.querySelectorAll('.delete-team-btn').forEach(btn => {
             <label style="font-weight: 600;">Advisers</label>
             <select id="adviserSelect" class="form-select">
               <option disabled selected>Select</option>
-              ${advisers.map((a) => `<option value="${a.id}">${a.last_name}, ${a.first_name} ${a.middle_name || ''}</option>`).join('')}
+              ${advisers.map((a) => {
+  return `<option value="${a.id}">
+    ${a.last_name}, ${a.first_name} ${a.middle_name || ''} 
+    ${a.adviser_group ? `(Group ${a.adviser_group})` : ''}
+  </option>`;
+}).join('')}
             </select>
           </div>
         </div>
@@ -461,28 +478,45 @@ container.querySelectorAll('.delete-team-btn').forEach(btn => {
         return { adviserId, selectedTeams };
       }
     }).then(async (result) => {
-      if (result.isConfirmed) {
-        const { adviserId, selectedTeams } = result.value;
-        const { data: existing } = await supabase.from("user_credentials").select("adviser_group");
-        const currentGroups = existing.map(e => e.adviser_group).filter(e => e !== null);
-        const nextAdviserGroup = currentGroups.length > 0 ? Math.max(...currentGroups) + 1 : 1;
+  if (result.isConfirmed) {
+    const { adviserId, selectedTeams } = result.value;
 
-        for (const groupId of selectedTeams) {
-          await supabase.from("user_credentials").update({ adviser_group: nextAdviserGroup }).eq("group_number", parseInt(groupId));
-        }
+    // Check kung may adviser_group na si adviser
+    const { data: adviserData } = await supabase
+  .from("user_credentials")
+  .select("adviser_group")
+  .eq("id", adviserId)
+  .single();
 
-        await supabase.from("user_credentials").update({ adviser_group: nextAdviserGroup }).eq("id", adviserId);
-        await fetchAccounts();
+let adviserGroupId = adviserData?.adviser_group;
 
-        MySwal.fire({
-          icon: 'success',
-          title: '✓ Adviser assigned',
-          showConfirmButton: false,
-          timer: 1500,
-        });
-      }
+if (!adviserGroupId) {
+  const { data: existing } = await supabase.from("user_credentials").select("adviser_group");
+  const currentGroups = existing.map(e => e.adviser_group).filter(e => e !== null);
+  adviserGroupId = currentGroups.length > 0 ? Math.max(...currentGroups) + 1 : 1;
+
+  await supabase.from("user_credentials")
+    .update({ adviser_group: adviserGroupId })
+    .eq("id", adviserId);
+}
+
+// assign all selected teams sa adviser_group
+for (const groupId of selectedTeams) {
+  await supabase.from("user_credentials")
+    .update({ adviser_group: adviserGroupId })
+    .eq("group_number", parseInt(groupId));
+}
+
+    await fetchAccounts();
+
+    MySwal.fire({
+      icon: 'success',
+      title: '✓ Adviser assigned',
+      showConfirmButton: false,
+      timer: 1500,
     });
-  };
+  }
+});}
 
    return (
     <div className="p-6">

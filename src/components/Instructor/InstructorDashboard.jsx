@@ -7,7 +7,9 @@ import StudentCredentials from "./StudentCredentials";
 import AdviserCredentials from "./AdviserCredentials";
 import Enroll from "./Enroll-Member";
 import Adviser from "./Adviser-Enroll";
+import TitleDefense from "./TitleDefense";
 const InstructorDashboard = () => {
+
   const [activePage, setActivePage] = useState("Dashboard");
 
   const renderContent = () => {
@@ -22,7 +24,7 @@ const InstructorDashboard = () => {
       case "Schedule":
         return <Schedule setActivePage={setActivePage} />;
       case "Title Defense":
-        return <ScheduleAdmin />;
+        return <TitleDefense />;
       case "StudentCredentials":
         return <StudentCredentials />;
       case "AdviserCredentials":
