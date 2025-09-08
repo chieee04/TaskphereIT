@@ -4,6 +4,7 @@ import { saveAs } from "file-saver";
 import { v4 as uuidv4 } from "uuid";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+import { supabase } from "../../supabaseClient";
 import {
   FaDownload,
   FaUpload,
@@ -23,7 +24,7 @@ const Enroll = () => {
   const handleDownload = () => {
     const sampleData = [
       {
-        student_id: "2025-0001",
+        user_id: "2025-0001",
         password: "password123",
         first_name: "Juan",
         last_name: "Dela Cruz",
@@ -32,7 +33,7 @@ const Enroll = () => {
     ];
     const ws = XLSX.utils.json_to_sheet(sampleData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
+    XLSX.utils.book_append_sheet(wb, ws, "user_credentials");
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     saveAs(new Blob([wbout], { type: "application/octet-stream" }), "students_template.xlsx");
   };
@@ -52,7 +53,7 @@ const Enroll = () => {
 
       const processedData = jsonData.map((row) => ({
         id: uuidv4(),
-        student_id: row.student_id || "",
+        user_id: row.user_id || "",
         password: row.password || "",
         first_name: row.first_name || "",
         last_name: row.last_name || "",
@@ -65,28 +66,43 @@ const Enroll = () => {
   };
 
   // ✅ Save data (simulate upload)
-  const handleUpload = () => {
-    if (importedData.length === 0) {
-      MySwal.fire("No Data", "Please import students first.", "warning");
-      return;
-    }
+  const handleUpload = async () => {
+  if (importedData.length === 0) {
+    MySwal.fire("No Data", "Please import students first.", "warning");
+    return;
+  }
+
+  try {
+    // Laging may user_roles = 2
+    const dataToInsert = importedData.map((row) => ({
+      user_id: row.user_id,
+      password: row.password,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      middle_name: row.middle_name,
+      user_roles: 2,  // 👈 default value
+    }));
+
+    const { data, error } = await supabase
+      .from("user_credentials") // 👈 yung bago mong table
+      .insert(dataToInsert);
+
+    if (error) throw error;
+
     MySwal.fire("Success", "Student data uploaded successfully!", "success");
     setImportedData([]);
-  };
-
-  // ✅ Cancel import
-  const handleCancel = () => {
-    setImportedData([]);
-    setSearchTerm("");
-    MySwal.fire("Cancelled", "Import cancelled.", "info");
-  };
+  } catch (err) {
+    console.error("Upload error:", err.message);
+    MySwal.fire("Error", err.message, "error");
+  }
+};
 
   // ✅ Edit row
   const handleEditRow = (row, index) => {
     MySwal.fire({
       title: "Edit Student",
       html: `
-        <input id="student_id" class="swal2-input" value="${row.student_id}" placeholder="Student ID" />
+        <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder="Student ID" />
         <input id="password" class="swal2-input" value="${row.password}" placeholder="Password" />
         <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder="First Name" />
         <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder="Last Name" />
@@ -96,7 +112,7 @@ const Enroll = () => {
       confirmButtonText: "Save",
       preConfirm: () => {
         return {
-          student_id: document.getElementById("student_id").value,
+          user_id: document.getElementById("user_id").value,
           password: document.getElementById("password").value,
           first_name: document.getElementById("first_name").value,
           last_name: document.getElementById("last_name").value,
@@ -130,14 +146,28 @@ const Enroll = () => {
     });
   };
 
+  // ✅ Cancel import
+const handleCancel = () => {
+  setImportedData([]);
+  setSearchTerm("");
+  MySwal.fire("Cancelled", "Import cancelled.", "info");
+};
+
+
   // ✅ Filtered data by search
-  const filteredData = importedData.filter(
-    (row) =>
-      row.student_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      row.middle_name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredData = importedData.filter((row) => {
+  const userId = (row.user_id ?? "").toString().toLowerCase();
+  const firstName = (row.first_name ?? "").toString().toLowerCase();
+  const lastName = (row.last_name ?? "").toString().toLowerCase();
+  const middleName = (row.middle_name ?? "").toString().toLowerCase();
+
+  return (
+    userId.includes(searchTerm.toLowerCase()) ||
+    firstName.includes(searchTerm.toLowerCase()) ||
+    lastName.includes(searchTerm.toLowerCase()) ||
+    middleName.includes(searchTerm.toLowerCase())
   );
+});
 
   return (
     <div className="container-fluid px-4 py-3">
@@ -204,41 +234,41 @@ const Enroll = () => {
                 {filteredData.map((row, index) => (
                   <tr key={row.id}>
                     <td>{index + 1}</td>
-                    <td>{row.student_id}</td>
+                    <td>{row.user_id}</td>
                     <td>{row.password}</td>
                     <td>{row.first_name}</td>
                     <td>{row.last_name}</td>
                     <td>{row.middle_name}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm enroll-action-btn"
-                        onClick={() =>
-                          setOpenDropdown(openDropdown === index ? null : index)
-                        }
-                      >
-                        <FaEllipsisV />
-                      </button>
-                      {openDropdown === index && (
-                        <ul className="dropdown-menu show enroll-dropdown">
-                          <li>
-                            <button
-                              className="dropdown-item"
-                              onClick={() => handleEditRow(row, index)}
-                            >
-                              ✏️ Edit
-                            </button>
-                          </li>
-                          <li>
-                            <button
-                              className="dropdown-item text-danger"
-                              onClick={() => handleDeleteRow(index)}
-                            >
-                              🗑 Delete
-                            </button>
-                          </li>
-                        </ul>
-                      )}
-                    </td>
+                    <td style={{ position: "relative" }}>
+  <button
+    className="btn btn-sm enroll-action-btn"
+    onClick={() =>
+      setOpenDropdown(openDropdown === index ? null : index)
+    }
+  >
+    <FaEllipsisV />
+  </button>
+  {openDropdown === index && (
+    <ul className="enroll-dropdown">
+      <li>
+        <button
+          className="dropdown-item"
+          onClick={() => handleEditRow(row, index)}
+        >
+          ✏️ Edit
+        </button>
+      </li>
+      <li>
+        <button
+          className="dropdown-item text-danger"
+          onClick={() => handleDeleteRow(index)}
+        >
+          🗑 Delete
+        </button>
+      </li>
+    </ul>
+  )}
+</td>
                   </tr>
                 ))}
                 {filteredData.length === 0 && (

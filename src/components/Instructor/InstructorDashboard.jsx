@@ -12,10 +12,11 @@ const InstructorDashboard = () => {
 
   const renderContent = () => {
     switch (activePage) {
-      case "Advisers":
-        return <Adviser />;
+      
+        case "Students":
+        return <Enroll/>;
         case "Advisers":
-        return <Enroll />;
+        return <Adviser />;
       case "Teams":
         return <Teams />;
       case "Schedule":

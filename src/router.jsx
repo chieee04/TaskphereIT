@@ -2,56 +2,78 @@ import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
 import Signin from "./components/signin";
 import Dashboard from "./components/Dashboard";
-import Schedule from "./components/Instructor/Schedule"; // ✅ IMPORT THIS
-import StudentCredentials from "./components/Instructor/StudentCredentials";
-import AdviserCredentials from "./components/Instructor/AdviserCredentials";
+
+//IT INSTRUCTOR
 import Adviser from "./components/Instructor/Adviser-Enroll";
 import Enroll from "./components/Instructor/Enroll-Member";
+import AdviserCredentials from "./components/Instructor/AdviserCredentials";
+import StudentCredentials from "./components/Instructor/StudentCredentials";
 import Teams from "./components/Instructor/Teams";
-import Oral from "./components/Instructor/OralDefense"
-import Final from "./components/Instructor/FinalDefense";
-import TitleDefense from "./components/Instructor/TitleDefense"
-import ManuScript from "./components/Instructor/ManuScript";
+import Schedule from "./components/Instructor/Schedule";
+  import FinalDefense from "./components/Instructor/FinalDefense";
+  import ManuScript from "./components/Instructor/ManuScript";
+  import OralDefense from "./components/Instructor/OralDefense";
+  import TitleDefense from "./components/Instructor/TitleDefense";
+
+// CAPSTONE ADVISER
+
+//PROJECT MANAGER
+import ManagerTask from "./components/ProjectManager/ManagerTask/ManagerTask";
+  import ManagerFinalDefense from "./components/ProjectManager/ManagerTask/ManagerFinalDefense";
+  import ManagerFinalCreate from "./components/ProjectManager/ManagerTask/ManagerFinalCreate";
+  import ManagerOralDefense from "./components/ProjectManager/ManagerTask/ManagerOralDefense";
+  import ManagerOralCreate from "./components/ProjectManager/ManagerTask/ManagerOralCreate";
+  import ManagerTitleDefense from "./components/ProjectManager/ManagerTask/ManagerTitleDefense";
+  import ManagerTitleCreate from "./components/ProjectManager/ManagerTask/ManagerTitleCreate";
+import ManagerTaskRecord from "./components/ProjectManager/ManagerTaskRecord/ManagerTaskRecord";
+  import ManagerFinalRecord from "./components/ProjectManager/ManagerTaskRecord/ManagerFinalRecord";
+  import ManagerOralRecord from "./components/ProjectManager/ManagerTaskRecord/ManagerOralRecord";
+  import ManagerTitleRecord from "./components/ProjectManager/ManagerTaskRecord/ManagerTitleRecord";
+import ManagerTaskBoard from "./components/ProjectManager/ManagerTaskBoard/ManagerTaskBoard";
+  import ManagerTaskBoardAttach from "./components/ProjectManager/ManagerTaskBoard/ManagerTaskBoardAttach";
+  import ManagerTaskBoardView from "./components/ProjectManager/ManagerTaskBoard/ManagerTaskBoardView";
+import ManagerAdviserTask from "./components/ProjectManager/ManagerAdviserTask";
+
+//MEMBER
 import MemberAdviserTasks from "./components/Member/MemberAdviserTasks";
 import MemberAllocation from "./components/Member/MemberAllocation";
+import MemberEvents from "./components/Member/MemberEvents";
+import MemberFinalDefense from "./components/Member/MemberFinalDefense";
+import MemberOralDefense from "./components/Member/MemberOralDefense";
+import MemberTitleDefense from "./components/Member/MemberTitleDefense";
 import MemberTask from "./components/Member/MemberTask";
-import MemberTasksBoard from "./components/Member/MemberTaskBoard";
-import InstructorDashboard from "./components/Instructor/InstructorDashboard";
-import MemberDashboard from "./components/Member/MemberDashboard";
-import ManagerDashboard from "./components/ProjectManager/ManagerDashboard";
+import MemberTaskRecord from "./components/Member/MemberTaskRecord";
+import MemberTaskBoard from "./components/Member/MemberTaskBoard";
 
-import ManagerFinalDefense from "./components/ProjectManager/ManagerTask/ManagerFinalDefense";
-import ManagerFinalCreate from "./components/ProjectManager/ManagerTask/ManagerFinalCreate";
+
+// DASHBOARD INTERFACE
+import InstructorDashboard from "./components/Instructor/InstructorDashboard";
+import ManagerDashboard from "./components/ProjectManager/ManagerDashboard";
+import MemberDashboard from "./components/Member/MemberDashboard";
 
 export const router = createBrowserRouter([
 
 
   {
     path: "/",
-    element: <App />,   //may Header + Footer
+    element: <App />,   //Para Static yung Header + Footer
     children: [
-      { index: true, element: <ManagerDashboard /> }, // ito ang unang lalabas (default)
-      { path: "/ManagerDashboard", element: <ManagerDashboard /> },
+      { index: true, element: <Signin /> }, // ito ang unang lalabas (default)
+      { path: "/Signin", element: <Signin /> },
 
   //-----------------------------------------------------------
   //-----------------------------------------------------------
 
   //IT INSTRUCTOR 
-  { path: "/dashboard", element: <Dashboard /> },
+  { path: "/InstructorDashboard", element: <InstructorDashboard /> },
   { path: "/Student-Credentials", element: <StudentCredentials /> },
   { path: "/Adviser-Credentials", element: <AdviserCredentials /> },
   { path: "/Adviser-Enroll", element: <Adviser /> },
   { path: "/Student-Enroll", element: <Enroll /> },
   { path: "/Teams", element: <Teams /> },
-  { path: "/InstructorDashboard", element: <InstructorDashboard /> },
-  { path: "/dashboard", element: <Dashboard /> },
   //SCHEDULE
   { path: "title-defense", element: <Schedule /> },
     //SCHEDULE
-    { path: "/Oral", element: <Oral /> },
-    { path: "/Final", element: <Final /> },
-    { path: "/TitleDefense", element: <TitleDefense /> },
-    { path: "/ManuScript", element: <ManuScript /> },
 
   //-----------------------------------------------------------
   //-----------------------------------------------------------
@@ -60,10 +82,12 @@ export const router = createBrowserRouter([
   { path: "/MemberAdviserTasks", element: <MemberAdviserTasks /> },
   { path: "/MemberAllocation", element: <MemberAllocation /> },
   { path: "/MemberTask", element: <MemberTask /> },
-  { path: "/MemberTasksBoard", element: <MemberTasksBoard /> },
-
   //
   
+
+  //dashboard
+  { path: "/ManagerDashboard", element: <ManagerDashboard /> },
+  { path: "/MemberDashboard", element: <MemberDashboard /> },
 
     ],
   },

@@ -1,10 +1,12 @@
 * {
   box-sizing: border-box;
 }
+
 .page-wrapper {
   width: 100%;
   padding: 40px 20px;
 }
+
 .section-title {
   font-size: 20px;
   font-weight: bold;
@@ -14,15 +16,18 @@
   align-items: center;
   gap: 8px;
 }
+
 .icon-image {
   width: 24px;
   height: 24px;
 }
+
 .divider {
   border: none;
   border-top: 2px solid #3B0304;
   margin-bottom: 20px;
 }
+
 .header-wrapper {
   display: flex;
   gap: 20px;
@@ -30,6 +35,7 @@
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
+
 .create-task-button {
   display: inline-flex;
   align-items: center;
@@ -47,14 +53,17 @@
   flex-shrink: 0;
   transition: background-color 0.2s ease;
 }
+
 .create-task-button:hover {
   background-color: #580404;
 }
+
 .create-task-icon {
   width: 18px;
   height: 18px;
   object-fit: contain;
 }
+
 .tasks-container {
   background: #fff;
   border-radius: 20px;
@@ -65,6 +74,7 @@
   min-width: 320px;
   flex-grow: 1;
 }
+
 .search-filter-wrapper {
   display: flex;
   justify-content: space-between;
@@ -72,6 +82,7 @@
   margin-bottom: 12px;
   gap: 12px;
 }
+
 .search-bar {
   display: flex;
   align-items: center;
@@ -82,11 +93,13 @@
   width: 200px;
   height: 34px;
 }
+
 .search-icon {
   width: 18px;
   height: 18px;
   margin-right: 6px;
 }
+
 .search-input {
   border: none;
   outline: none;
@@ -95,12 +108,14 @@
   font-size: 14px;
   height: 20px;
 }
+
 .filter-wrapper {
   position: relative;
   width: 160px;
   user-select: none;
   height: 34px;
 }
+
 .filter-button {
   display: flex;
   align-items: center;
@@ -117,16 +132,19 @@
   height: 100%;
   cursor: pointer;
 }
+
 .filter-icon {
   width: 18px;
   height: 18px;
 }
+
 .clear-icon {
   margin-left: auto;
   width: 16px;
   height: 16px;
   cursor: pointer;
 }
+
 .dropdown-menu {
   position: absolute;
   top: calc(100% + 12px);
@@ -139,49 +157,60 @@
   z-index: 10;
   padding: 4px 0;
 }
+
 .filter-dropdown-menu {
   width: 160px;
 }
+
 .dropdown-title {
   font-weight: bold;
   padding: 8px 12px;
   font-size: 14px;
 }
+
 .dropdown-item {
   padding: 10px 12px;
   cursor: pointer;
   font-size: 14px;
 }
+
 .dropdown-item:hover {
   background-color: #f0f0f0;
 }
+
 .tasks-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
 }
+
 .tasks-table th,
 .tasks-table td {
   padding: 12px 10px;
   text-align: center;
   white-space: nowrap;
 }
+
 .tasks-table th {
   background-color: #fafafa;
   font-weight: bold;
   color: #000;
 }
+
 .tasks-table tbody tr:nth-child(even) {
   background-color: #fafafa;
 }
+
 .center-text {
   text-align: center;
 }
+
 .inline-icon {
   width: 16px;
   height: 16px;
   margin-right: 4px;
 }
+
 .revision-cell .revision-badge {
   display: inline-flex;
   align-items: center;
@@ -194,16 +223,19 @@
   cursor: pointer;
   width: 120px;
 }
+
 .revision-dropdown-icon {
   width: 12px;
   height: 12px;
   margin-left: 6px;
 }
+
 .dropdown-wrapper {
   position: relative;
   display: inline-block;
   width: 120px;
 }
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -215,6 +247,7 @@
   font-weight: bold;
   width: 100%;
 }
+
 .status-dropdown-icon {
   width: 12px;
   height: 12px;

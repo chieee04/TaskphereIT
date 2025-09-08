@@ -3,7 +3,9 @@ import redDropdownIcon from "../../../assets/red-dropdown-icon.png";
 import blackCreateTasksIcon from "../../../assets/black-create-tasks-icon.png";
 import attachmentIcon from "../../../assets/attachment-icon.png";
 import exitIcon from "../../../assets/exit-icon.png";
-import "../../Style/ProjectManager/ManagerOralCreate.css"; // ⬅️ hiwalay na CSS file
+
+
+import "../../Style/ProjectManager/ManagerOralCreate.css"; 
 
 const METHODOLOGY_OPTIONS = ["Agile", "Extreme Programming", "JAD", "RAD", "Prototyping"];
 

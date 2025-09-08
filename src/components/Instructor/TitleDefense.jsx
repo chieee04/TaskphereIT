@@ -4,7 +4,7 @@ import { FaCalendarAlt } from "react-icons/fa";
 
 const MySwal = withReactContent(Swal);
 
-const ScheduleAdmin = () => {
+const TitleDefense = () => {
   const handleCreateSchedule = () => {
     MySwal.fire({
       title: `<div style="color: #3B0304; font-weight: 600; display: flex; align-items: center; gap: 8px;">
@@ -148,4 +148,4 @@ const ScheduleAdmin = () => {
   );
 };
 
-export default ScheduleAdmin;
+export default TitleDefense;

@@ -1,6 +1,6 @@
 // src/components/tasks/oral-defense-tasks.jsx
 import React, { useState, useEffect, useRef } from "react";
-import "../../Style/ManagerOralDefense.css";
+import "../../Style/ProjectManager/ManagerOralDefense.css"
 
 // import OralCreateTasks from "./oral-create-tasks";
 import taskIcon from "../../../assets/tasks-icon.png";

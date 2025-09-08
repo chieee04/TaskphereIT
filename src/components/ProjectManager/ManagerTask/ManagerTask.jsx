@@ -6,7 +6,7 @@ import taskAllocationIcon from "../../../assets/task-allocation-icon.png";
 
 import "../../Style/ProjectManager/ManagerTask.css"; // ⬅️ hiwalay na CSS
 
-export default function Tasks() {
+const ManagerTask = () => {
   const [status, setStatus] = useState("To Review");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const statusDropdownRef = useRef(null);
@@ -140,3 +140,4 @@ export default function Tasks() {
     </div>
   );
 }
+export default ManagerTask;

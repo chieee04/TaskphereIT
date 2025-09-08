@@ -2,7 +2,7 @@
 
 import React from "react";
 import fileTypeIcon from "../../../assets/file-type-icon.png";
-import "../../Style/ProjectManager/ManagerTaskBoardAttach"; // hiwalay na CSS file
+import "../../Style/ProjectManager/ManagerTaskBoardAttach.css"; // hiwalay na CSS file
 
 export default function ManagerTaskBoardAttach() {
   return (

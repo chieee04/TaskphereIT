@@ -1,3 +1,4 @@
+// ✅ Sidebar.jsx
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -7,40 +8,73 @@ import { supabase } from '../supabaseClient';
 import './Style/Sidebar.css'; 
 
 const Sidebar = ({ activeItem, onSelect }) => {
+  // 🔹 Collapse/expand toggle
   const [collapsed, setCollapsed] = useState(false);
-  const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
-  const [userRole, setUserRole] = useState(null);
 
+  // 🔹 Submenu for Enroll (Admin only)
+  const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
+
+  // 🔹 Role state
+  //    0 = Admin (Supabase Auth)
+  //    1 = Manager (table user_roles = 1)
+  //    2 = Member  (table user_roles = 2)
+  const [user_roles, setuser_roles] = useState(null);
+
+  // 🔹 Current logged in user
+  //    Admin → galing sa Supabase Auth
+  //    Manager/Member → galing sa custom table login
   const { user } = UserAuth();
   const navigate = useNavigate();
 
+  // ============================================================
+  // 🔑 Determine role of the current user
+  // ============================================================
   useEffect(() => {
-    const fetchRole = async () => {
-      if (user?.id) {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('uid', user.id)
-          .single();
+  const fetchRole = async () => {
+    // Case 1: Admin via Supabase Auth
+    if (user?.email) {
+      console.log("✅ Admin detected:", user.email);
+      setuser_roles(0); // Role 0 = Admin
+      return;
+    }
 
-        if (!error && data) {
-          setUserRole(data.role);
-        } else {
-          console.error('Error fetching role:', error);
-        }
-      }
-    };
+    // Case 2: Table-based users (Manager/Member)
+    const customUser = JSON.parse(localStorage.getItem("customUser"));
+    console.log("📌 customUser from localStorage:", customUser);
 
-    fetchRole();
-  }, [user]);
-
-  const toggleSidebar = () => setCollapsed(!collapsed);
-
-  const handleSignOut = async (e) => {
-    e.preventDefault();
-    navigate('/');
+    if (customUser?.user_roles) {
+      // Diretso na gamitin yung role na naka-save
+      setuser_roles(customUser.user_roles);
+      return;
+    }
   };
 
+  fetchRole();
+}, [user]);
+
+
+
+  // ============================================================
+  // 🔑 Sign Out
+  // ============================================================
+  const handleSignOut = async (e) => {
+  e.preventDefault();
+
+  if (user_roles === 0) {
+    // Admin logout via Supabase Auth
+    await supabase.auth.signOut();
+  } else {
+    // Manager/Member
+    localStorage.removeItem("customUser");
+  }
+
+  navigate("/");
+};
+
+
+  // ============================================================
+  // 🔹 Helper: Render menu item
+  // ============================================================
   const renderMenuItem = (icon, label, onClick, isActive = false) => (
     <li className="nav-item mb-1">
       <a
@@ -63,9 +97,14 @@ const Sidebar = ({ activeItem, onSelect }) => {
       </a>
     </li>
   );
-/*
-  // ✅ Role 0 → Admin
-  if (userRole === 0) {
+
+  // ============================================================
+  // 🔹 Sidebar items depende sa role
+  // ============================================================
+  let sidebarItems;
+
+  // ✅ Admin (Supabase Auth, role = 0)
+  if (user_roles === 0) {
     sidebarItems = (
       <>
         {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
@@ -85,8 +124,22 @@ const Sidebar = ({ activeItem, onSelect }) => {
     );
   }
 
-  // ✅ Role 1 → Member
-  else if (userRole === 1) {
+  // ✅ Manager (table, user_roles = 1)
+  else if (user_roles === 1) {
+    sidebarItems = (
+      <>
+        {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
+        {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
+        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
+        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+        {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
+      </>
+    );
+  }
+
+  // ✅ Member (table, user_roles = 2)
+  else if (user_roles === 2) {
     sidebarItems = (
       <>
         {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
@@ -100,46 +153,29 @@ const Sidebar = ({ activeItem, onSelect }) => {
     );
   }
 
-  // ✅ Role 3 → Manager
-  else if (userRole === 3) {
-    sidebarItems = (
-      <>
-        {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-        {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
-        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
-        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
-        {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-      </>
-    );
-  } else {
-    return null; // No role, no sidebar
+  // ❌ No role detected → hide sidebar
+  else {
+    return null;
   }
-*/
-  let sidebarItems = (
-    <>
-      {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-        {renderMenuItem('bi-person-check', 'Adviser Tasks', () => onSelect('Adviser Tasks'), activeItem === 'Adviser Tasks')}
-        {renderMenuItem('bi-kanban', 'Tasks Board', () => onSelect('Tasks Board'), activeItem === 'Tasks Board')}
-        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
-        {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-    </>
-  );
-  
 
+  // ============================================================
+  // 🔹 Final render
+  // ============================================================
   return (
     <div className={`sidebar ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
+      {/* Collapse/Expand button */}
       <button
-        onClick={toggleSidebar}
+        onClick={() => setCollapsed(!collapsed)}
         className="btn btn-sm btn-outline-secondary sidebar-toggle"
         title={collapsed ? 'Expand' : 'Collapse'}
       >
         <i className={`bi ${collapsed ? 'bi-chevron-double-right' : 'bi-chevron-double-left'}`} />
       </button>
 
+      {/* Menu items */}
       <ul className="nav nav-pills flex-column mb-auto">{sidebarItems}</ul>
 
+      {/* Sign Out */}
       <div className="mt-auto">
         <button
           className="btn btn-outline-danger d-flex align-items-center justify-content-center sidebar-signout"

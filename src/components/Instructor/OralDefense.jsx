@@ -1,6 +1,6 @@
 import React from 'react'
 
-const Oral = () => {
+const OralDefense = () => {
   return (
     <div>
       
@@ -8,4 +8,4 @@ const Oral = () => {
   )
 }
 
-export default Oral
+export default OralDefense;
