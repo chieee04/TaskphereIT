@@ -20,6 +20,121 @@ const AdviserCredentials = () => {
       .includes(searchTerm.toLowerCase())
   );
 
+
+// Generate random password (10 characters: letters, numbers, special chars)
+const generatePassword = () => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+  let password = "";
+  for (let i = 0; i < 10; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+// Delete all passwords
+const handleDeleteAllPasswords = async () => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This will delete all adviser passwords.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete all!",
+  });
+
+  if (result.isConfirmed) {
+    const { error } = await supabase
+      .from("user_credentials")
+      .update({ password: "" })
+      .eq("user_roles", 3);
+
+    if (error) {
+      console.error("Error deleting all passwords:", error);
+      Swal.fire("Error", "Failed to delete all passwords.", "error");
+    } else {
+      setCredentials(credentials.map((row) => ({ ...row, password: "" })));
+      Swal.fire("Deleted!", "All passwords have been deleted.", "success");
+    }
+  }
+};
+// Reset specific adviser password
+const handleResetPassword = async (row, index) => {
+  const result = await Swal.fire({
+    title: "Reset Password?",
+    text: `This will reset the password of ${row.first_name} ${row.last_name}.`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#aaa",
+    confirmButtonText: "Yes, reset it!",
+  });
+
+  if (result.isConfirmed) {
+    const newPassword = generatePassword();
+
+    const { error } = await supabase
+      .from("user_credentials")
+      .update({ password: newPassword })
+      .eq("id", row.id);
+
+    if (error) {
+      console.error("Error resetting password:", error);
+      Swal.fire("Error", "Failed to reset password.", "error");
+    } else {
+      const updatedCredentials = [...credentials];
+      updatedCredentials[index] = { ...row, password: newPassword };
+      setCredentials(updatedCredentials);
+
+      Swal.fire("Reset!", "Password has been reset.", "success");
+    }
+  }
+};
+
+// Reset all passwords
+const handleResetAllPasswords = async () => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This will reset all adviser passwords to new random ones.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#aaa",
+    confirmButtonText: "Yes, reset all!",
+  });
+
+  if (result.isConfirmed) {
+    // Generate new passwords for each adviser
+    const updatedCredentials = credentials.map((row) => ({
+      ...row,
+      password: generatePassword(),
+    }));
+
+    // Collect updates
+    const updates = updatedCredentials.map((row) => ({
+      id: row.id,
+      password: row.password,
+    }));
+
+    try {
+      // update each row by id
+      for (let u of updates) {
+        const { error } = await supabase
+          .from("user_credentials")
+          .update({ password: u.password })
+          .eq("id", u.id);
+
+        if (error) throw error;
+      }
+
+      setCredentials(updatedCredentials);
+      Swal.fire("Reset!", "All adviser passwords have been reset.", "success");
+    } catch (err) {
+      console.error("Error resetting all passwords:", err);
+      Swal.fire("Error", "Failed to reset all passwords.", "error");
+    }
+  }
+};
+
   // Delete handler
   const handleDelete = async (id) => {
     const result = await Swal.fire({
@@ -132,10 +247,35 @@ const AdviserCredentials = () => {
           {/* Divider */}
           <hr className="adviser-cred-divider" />
 
-          {/* Export button */}
-          <button className="btn adviser-cred-btn mb-3">
-            <FaDownload className="me-1" /> Export
+{/* Export + 3-dot global actions */}
+<div className="d-flex justify-content-end align-items-center gap-2 mb-3">
+  <button className="btn adviser-cred-btn">
+    <FaDownload className="me-1" /> Export
+  </button>
+
+  <div className="position-relative d-inline-block">
+    <button
+      className="btn adviser-cred-action-btn"
+      onClick={() => setOpenDropdown(openDropdown === "global" ? null : "global")}
+    >
+      <FaEllipsisV />
+    </button>
+    {openDropdown === "global" && (
+      <ul className="dropdown-menu show adviser-cred-dropdown">
+        <li>
+          <button className="dropdown-item text-danger" onClick={handleDeleteAllPasswords}>
+            🗑 Delete All Passwords
           </button>
+        </li>
+        <li>
+          <button className="dropdown-item" onClick={handleResetAllPasswords}>
+            🔑 Reset All Passwords
+          </button>
+        </li>
+      </ul>
+    )}
+  </div>
+</div>
 
           {/* Search bar */}
           <input
@@ -193,25 +333,34 @@ const AdviserCredentials = () => {
                             <FaEllipsisV />
                           </button>
                           {openDropdown === index && (
-                            <ul className="dropdown-menu show adviser-cred-dropdown">
-                              <li>
-                                <button
-                                  className="dropdown-item"
-                                  onClick={() => handleEditRow(row, index)}
-                                >
-                                  ✏️ Edit
-                                </button>
-                              </li>
-                              <li>
-                                <button
-                                  className="dropdown-item text-danger"
-                                  onClick={() => handleDelete(row.id)}
-                                >
-                                  🗑 Delete
-                                </button>
-                              </li>
-                            </ul>
-                          )}
+  <ul className="dropdown-menu show adviser-cred-dropdown">
+    <li>
+      <button
+        className="dropdown-item"
+        onClick={() => handleEditRow(row, index)}
+      >
+        ✏️ Edit
+      </button>
+    </li>
+    <li>
+      <button
+        className="dropdown-item"
+        onClick={() => handleResetPassword(row, index)}
+      >
+        🔑 Reset Password
+      </button>
+    </li>
+    <li>
+      <button
+        className="dropdown-item text-danger"
+        onClick={() => handleDelete(row.id)}
+      >
+        🗑 Delete
+      </button>
+    </li>
+  </ul>
+)}
+
                         </div>
                       </td>
                     </tr>

@@ -14,7 +14,7 @@ const Schedule = ({ setActivePage }) => {
     {
       title: 'Manuscript Submission',
       icon: <GiArchiveRegister size={36} color="#3B0304" />,
-      onClick: () => alert('Clicked Manuscript Submission'),
+      onClick: () => setActivePage('ManuScript'),
     },
     {
       title: 'Oral Defense',
