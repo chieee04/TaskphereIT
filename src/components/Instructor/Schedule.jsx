@@ -19,7 +19,7 @@ const Schedule = ({ setActivePage }) => {
     {
       title: 'Oral Defense',
       icon: <MdOutlineRecordVoiceOver size={36} color="#3B0304" />,
-      onClick: () => alert('Clicked Oral Defense'),
+      onClick: () => setActivePage('Oral Defense'),
     },
     {
       title: 'Final Defense',

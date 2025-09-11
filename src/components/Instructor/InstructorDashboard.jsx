@@ -9,6 +9,7 @@ import Enroll from "./Enroll-Member";
 import Adviser from "./Adviser-Enroll";
 import TitleDefense from "./TitleDefense";
 import ManuScript from "./ManuScript";
+import OralDefense from "./OralDefense";
 const InstructorDashboard = () => {
 
   const [activePage, setActivePage] = useState("Dashboard");
@@ -28,6 +29,8 @@ const InstructorDashboard = () => {
         return <TitleDefense />;
       case "ManuScript":
         return <ManuScript />;
+        case "Oral Defense":
+        return <OralDefense />;
       case "StudentCredentials":
         return <StudentCredentials />;
       case "AdviserCredentials":
