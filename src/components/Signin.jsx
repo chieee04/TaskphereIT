@@ -88,6 +88,17 @@ const Signin = () => {
           showConfirmButton: false,
         });
         navigate("/MemberDashboard");
+      }else if (user.user_roles === 3) {
+        // Member
+        localStorage.setItem("customUser", JSON.stringify(user));
+        Swal.fire({
+          icon: "success",
+          title: "Login successful",
+          text: "Welcome Adviser",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        navigate("/AdviserDashboard");
       } else {
         // Unknown role
         Swal.fire({

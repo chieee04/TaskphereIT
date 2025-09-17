@@ -1,143 +1,85 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import tasksIcon from "../../../assets/tasks-icon.png";
-import recordIcon from "../../../assets/records-icon.png";
-import taskAllocationIcon from "../../../assets/task-allocation-icon.png";
+import React from "react";
+import { FaCalendarAlt } from "react-icons/fa";
+import { MdOutlineRecordVoiceOver } from "react-icons/md";
+import { BsCalendar2Check } from "react-icons/bs";
+import { GiArchiveRegister } from "react-icons/gi";
 
-import "../../Style/ProjectManager/ManagerTask.css"; // ⬅️ hiwalay na CSS
-
-const ManagerTask = () => {
-  const [status, setStatus] = useState("To Review");
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const statusDropdownRef = useRef(null);
-  const navigate = useNavigate();
-
-  const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Missed"];
-
-  const getStatusColor = (value) => {
-    switch (value) {
-      case "To Do":
-        return "#FABC3F";
-      case "In Progress":
-        return "#809D3C";
-      case "To Review":
-        return "#578FCA";
-      case "Missed":
-        return "#D32F2F";
-      default:
-        return "#ccc";
-    }
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        statusDropdownRef.current &&
-        !statusDropdownRef.current.contains(event.target)
-      ) {
-        setShowStatusDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const handleCardClick = (path) => {
-    navigate(path);
-  };
+const ManagerTask = ({ setActivePage }) => {
+  // 🔹 Cards config
+  const items = [
+    {
+      title: "Title Defense",
+      icon: <FaCalendarAlt size={36} color="#3B0304" />,
+      page: "Title Defense",
+    },
+    {
+      title: "Oral Defense",
+      icon: <MdOutlineRecordVoiceOver size={36} color="#3B0304" />,
+      page: "Oral Defense",
+    },
+    {
+      title: "Final Defense",
+      icon: <BsCalendar2Check size={36} color="#3B0304" />,
+      page: "Final Defense",
+    },
+    {
+      title: "Tasks Allocation",
+      icon: <GiArchiveRegister size={36} color="#3B0304" />,
+      page: "Tasks Allocation",
+    },
+  ];
 
   return (
-    <div className="tasks-record-wrapper">
-      <h2 className="section-title">
-        <img src={tasksIcon} alt="Tasks Icon" className="section-icon" />
-        Tasks
-      </h2>
-      <hr className="divider" />
+    <div className="container-fluid px-4 py-3">
+      <div
+        className="d-flex align-items-center mb-2"
+        style={{ color: "#3B0304" }}
+      >
+        <i className="bi bi-list-task me-2"></i>
+        <strong>Manager Tasks</strong>
+      </div>
 
-      <div className="tasks-record-container">
-        {/* Title Defense Card */}
-        <div
-          className="task-card"
-          onClick={() => handleCardClick("/title-tasks-record")}
-        >
-          <div className="task-card-icon">
-            <img
-              src={recordIcon}
-              alt="Title Defense Icon"
-              className="card-icon"
-            />
-          </div>
-          <div className="task-card-header">
-            <h3 className="task-title">
-              Title
-              <br />
-              Defense
-            </h3>
-          </div>
-        </div>
+      <hr
+        style={{
+          borderTop: "2px solid #3B0304",
+          marginTop: 0,
+          marginBottom: "1.5rem",
+        }}
+      />
 
-        {/* Oral Defense Card */}
-        <div
-          className="task-card"
-          onClick={() => handleCardClick("/oral-tasks-record")}
-        >
-          <div className="task-card-icon">
-            <img
-              src={recordIcon}
-              alt="Oral Defense Icon"
-              className="card-icon"
-            />
+      <div className="d-flex flex-wrap gap-3">
+        {items.map((item, index) => (
+          <div
+            key={index}
+            className="d-flex flex-column align-items-center justify-content-center"
+            style={{
+              width: "130px",
+              height: "150px",
+              borderRadius: "12px",
+              background: "white",
+              borderLeft: "12px solid #3B0304",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              cursor: "pointer",
+              transition: "all 0.2s ease-in-out",
+            }}
+            onClick={() => setActivePage(item.page)}
+          >
+            <div className="mb-2">{item.icon}</div>
+            <div
+              className="text-center px-2"
+              style={{
+                fontSize: "13px",
+                fontWeight: 600,
+                color: "#3B0304",
+              }}
+            >
+              {item.title}
+            </div>
           </div>
-          <div className="task-card-header">
-            <h3 className="task-title">
-              Oral
-              <br />
-              Defense
-            </h3>
-          </div>
-        </div>
-
-        {/* Final Defense Card */}
-        <div
-          className="task-card"
-          onClick={() => handleCardClick("/final-tasks-record")}
-        >
-          <div className="task-card-icon">
-            <img
-              src={recordIcon}
-              alt="Final Defense Icon"
-              className="card-icon"
-            />
-          </div>
-          <div className="task-card-header">
-            <h3 className="task-title">
-              Final
-              <br />
-              Defense
-            </h3>
-          </div>
-        </div>
-
-        {/* Task Allocation Card */}
-        <div
-          className="task-card"
-          onClick={() => handleCardClick("/task-allocation")}
-        >
-          <div className="task-card-icon">
-            <img
-              src={taskAllocationIcon}
-              alt="Task Allocation Icon"
-              className="card-icon"
-            />
-          </div>
-          <div className="task-card-header">
-            <h3 className="task-title">Tasks Allocation</h3>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
-}
+};
+
 export default ManagerTask;

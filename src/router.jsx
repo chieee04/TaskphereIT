@@ -16,7 +16,8 @@ import Schedule from "./components/Instructor/Schedule";
   import TitleDefense from "./components/Instructor/TitleDefense";
 
 // CAPSTONE ADVISER
-
+import AdviserTask from "./components/CapstoneAdviser/AdviserTask/AdviserTask";
+import AdviserOralDef from "./components/CapstoneAdviser/AdviserTask/AdviserOralDef";
 //PROJECT MANAGER
 import ManagerTask from "./components/ProjectManager/ManagerTask/ManagerTask";
   import ManagerFinalDefense from "./components/ProjectManager/ManagerTask/ManagerFinalDefense";
@@ -50,6 +51,7 @@ import MemberTaskBoard from "./components/Member/MemberTaskBoard";
 import InstructorDashboard from "./components/Instructor/InstructorDashboard";
 import ManagerDashboard from "./components/ProjectManager/ManagerDashboard";
 import MemberDashboard from "./components/Member/MemberDashboard";
+import AdviserDashboard from "./components/CapstoneAdviser/AdviserDashboard";
 
 export const router = createBrowserRouter([
 
@@ -76,7 +78,13 @@ export const router = createBrowserRouter([
     //SCHEDULE
 
   //-----------------------------------------------------------
+  //Manager
+
   //-----------------------------------------------------------
+  //adviser
+  { path: "/AdviserTask", element: <AdviserTask /> },
+  //{ path: "/AdviserTask/AdviserOralDef", element: <AdviserOralDef /> },
+  
 
   //MEMBER
   { path: "/MemberAdviserTasks", element: <MemberAdviserTasks /> },
@@ -88,6 +96,7 @@ export const router = createBrowserRouter([
   //dashboard
   { path: "/ManagerDashboard", element: <ManagerDashboard /> },
   { path: "/MemberDashboard", element: <MemberDashboard /> },
+  { path: "/AdviserDashboard", element: <AdviserDashboard /> },
 
     ],
   },

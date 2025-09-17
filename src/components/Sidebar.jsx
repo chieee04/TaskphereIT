@@ -137,6 +137,48 @@ const Sidebar = ({ activeItem, onSelect }) => {
       </>
     );
   }
+  else if (user_roles === 3) {
+  sidebarItems = (
+    <>
+      {renderMenuItem(
+        'bi-speedometer2',
+        'Dashboard',
+        () => onSelect('Dashboard'),
+        activeItem === 'Dashboard'
+      )}
+      {renderMenuItem(
+        'bi-people',
+        'Teams Summary',
+        () => onSelect('Teams Summary'),
+        activeItem === 'Teams Summary'
+      )}
+      {renderMenuItem(
+        'bi-list-task',
+        'Tasks',
+        () => onSelect('Tasks'),
+        activeItem === 'Tasks'
+      )}
+      {renderMenuItem(
+        'bi-kanban',
+        'Teams Board',
+        () => onSelect('Teams Board'),
+        activeItem === 'Teams Board'
+      )}
+      {renderMenuItem(
+        'bi-journal-text',
+        'Tasks Record',
+        () => onSelect('Tasks Record'),
+        activeItem === 'Tasks Record'
+      )}
+      {renderMenuItem(
+        'bi-calendar-event',
+        'Events',
+        () => onSelect('Events'),
+        activeItem === 'Events'
+      )}
+    </>
+  );
+}
 
   // ✅ Member (table, user_roles = 2)
   else if (user_roles === 2) {
