@@ -1,141 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { FaDownload, FaUserGraduate, FaEllipsisV } from "react-icons/fa";
 import { supabase } from "../../supabaseClient";
-import "../Style/Instructor/AdviserCredentials.css"; // ✅ import css
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-
+import "../Style/Instructor/StudentCredentials.css";
+ 
 const AdviserCredentials = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [openDropdown, setOpenDropdown] = useState(null);
-  const MySwal = withReactContent(Swal);
-
+  const [openDropdownRow, setOpenDropdownRow] = useState(null);
+  const [openHeaderAction, setOpenHeaderAction] = useState(false);
   const [credentials, setCredentials] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  const MySwal = withReactContent(Swal);
+ 
   const filteredData = credentials.filter((row) =>
     Object.values(row)
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
-
-
-// Generate random password (10 characters: letters, numbers, special chars)
-const generatePassword = () => {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
-  let password = "";
-  for (let i = 0; i < 10; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-};
-// Delete all passwords
-const handleDeleteAllPasswords = async () => {
-  const result = await Swal.fire({
-    title: "Are you sure?",
-    text: "This will delete all adviser passwords.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Yes, delete all!",
-  });
-
-  if (result.isConfirmed) {
-    const { error } = await supabase
-      .from("user_credentials")
-      .update({ password: "" })
-      .eq("user_roles", 3);
-
-    if (error) {
-      console.error("Error deleting all passwords:", error);
-      Swal.fire("Error", "Failed to delete all passwords.", "error");
-    } else {
-      setCredentials(credentials.map((row) => ({ ...row, password: "" })));
-      Swal.fire("Deleted!", "All passwords have been deleted.", "success");
-    }
-  }
-};
-// Reset specific adviser password
-const handleResetPassword = async (row, index) => {
-  const result = await Swal.fire({
-    title: "Reset Password?",
-    text: `This will reset the password of ${row.first_name} ${row.last_name}.`,
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#aaa",
-    confirmButtonText: "Yes, reset it!",
-  });
-
-  if (result.isConfirmed) {
-    const newPassword = generatePassword();
-
-    const { error } = await supabase
-      .from("user_credentials")
-      .update({ password: newPassword })
-      .eq("id", row.id);
-
-    if (error) {
-      console.error("Error resetting password:", error);
-      Swal.fire("Error", "Failed to reset password.", "error");
-    } else {
-      const updatedCredentials = [...credentials];
-      updatedCredentials[index] = { ...row, password: newPassword };
-      setCredentials(updatedCredentials);
-
-      Swal.fire("Reset!", "Password has been reset.", "success");
-    }
-  }
-};
-
-// Reset all passwords
-const handleResetAllPasswords = async () => {
-  const result = await Swal.fire({
-    title: "Are you sure?",
-    text: "This will reset all adviser passwords to new random ones.",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#aaa",
-    confirmButtonText: "Yes, reset all!",
-  });
-
-  if (result.isConfirmed) {
-    // Generate new passwords for each adviser
-    const updatedCredentials = credentials.map((row) => ({
-      ...row,
-      password: generatePassword(),
-    }));
-
-    // Collect updates
-    const updates = updatedCredentials.map((row) => ({
-      id: row.id,
-      password: row.password,
-    }));
-
-    try {
-      // update each row by id
-      for (let u of updates) {
-        const { error } = await supabase
-          .from("user_credentials")
-          .update({ password: u.password })
-          .eq("id", u.id);
-
-        if (error) throw error;
-      }
-
-      setCredentials(updatedCredentials);
-      Swal.fire("Reset!", "All adviser passwords have been reset.", "success");
-    } catch (err) {
-      console.error("Error resetting all passwords:", err);
-      Swal.fire("Error", "Failed to reset all passwords.", "error");
-    }
-  }
-};
-
-  // Delete handler
+ 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -146,13 +30,9 @@ const handleResetAllPasswords = async () => {
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
     });
-
+ 
     if (result.isConfirmed) {
-      const { error } = await supabase
-        .from("user_credentials")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("user_credentials").delete().eq("id", id);
       if (error) {
         console.error("Delete error:", error);
         Swal.fire("Error", "Failed to delete adviser.", "error");
@@ -162,8 +42,7 @@ const handleResetAllPasswords = async () => {
       }
     }
   };
-
-  // Edit handler
+ 
   const handleEditRow = (row, index) => {
     MySwal.fire({
       title: "Edit Adviser",
@@ -188,41 +67,32 @@ const handleResetAllPasswords = async () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         const updatedData = { ...row, ...result.value };
-
         const { error } = await supabase
           .from("user_credentials")
-          .update({
-            user_id: updatedData.user_id,
-            password: updatedData.password,
-            first_name: updatedData.first_name,
-            last_name: updatedData.last_name,
-            middle_name: updatedData.middle_name,
-          })
+          .update(updatedData)
           .eq("id", row.id);
-
+ 
         if (error) {
           console.error("Update error:", error);
           MySwal.fire("Error", "Failed to update adviser.", "error");
         } else {
-          const newCredentials = [...credentials];
-          newCredentials[index] = updatedData;
-          setCredentials(newCredentials);
-
+          const updatedCredentials = [...credentials];
+          updatedCredentials[index] = updatedData;
+          setCredentials(updatedCredentials);
           MySwal.fire("Updated!", "Adviser updated successfully.", "success");
         }
       }
     });
   };
-
-  // Fetch data
+ 
   useEffect(() => {
     const fetchCredentials = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("user_credentials")
         .select("id, last_name, first_name, middle_name, user_id, password, user_roles")
-        .eq("user_roles", 3); // advisers lang
-
+        .in("user_roles", [3]); // advisers
+ 
       if (error) {
         console.error("Error fetching:", error);
       } else {
@@ -230,76 +100,152 @@ const handleResetAllPasswords = async () => {
       }
       setLoading(false);
     };
-
+ 
     fetchCredentials();
   }, []);
-
+ 
   return (
     <div className="container-fluid px-4 py-3">
       <div className="row">
         <div className="col-12 col-md-10 col-lg-9">
-          {/* Title */}
-          <div className="d-flex align-items-center mb-2 adviser-cred-header">
+          {/* Header */}
+          <div className="d-flex align-items-center mb-2 student-cred-header">
             <FaUserGraduate className="me-2" size={18} />
             <strong>Adviser Credentials</strong>
           </div>
-
-          {/* Divider */}
-          <hr className="adviser-cred-divider" />
-
-{/* Export + 3-dot global actions */}
-<div className="d-flex justify-content-end align-items-center gap-2 mb-3">
-  <button className="btn adviser-cred-btn">
-    <FaDownload className="me-1" /> Export
-  </button>
-
-  <div className="position-relative d-inline-block">
-    <button
-      className="btn adviser-cred-action-btn"
-      onClick={() => setOpenDropdown(openDropdown === "global" ? null : "global")}
-    >
-      <FaEllipsisV />
-    </button>
-    {openDropdown === "global" && (
-      <ul className="dropdown-menu show adviser-cred-dropdown">
-        <li>
-          <button className="dropdown-item text-danger" onClick={handleDeleteAllPasswords}>
-            🗑 Delete All Passwords
-          </button>
-        </li>
-        <li>
-          <button className="dropdown-item" onClick={handleResetAllPasswords}>
-            🔑 Reset All Passwords
-          </button>
-        </li>
-      </ul>
-    )}
-  </div>
-</div>
-
-          {/* Search bar */}
-          <input
-            type="text"
-            placeholder="Search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="form-control adviser-cred-search mb-3"
+ 
+          {/* ✅ Extended Divider */}
+          <div
+            style={{
+              height: "1.5px",
+              backgroundColor: "#3B0304",
+              width: "calc(100% + 70px)",
+              marginLeft: "-16px",
+              borderRadius: "50px",
+              marginBottom: "1.5rem",
+            }}
           />
-
+ 
+          {/* Export Button */}
+          <button
+            className="btn mb-3"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              border: "1.5px solid #3B0304",
+              color: "#3B0304",
+              padding: "4px 10px",
+              backgroundColor: "white",
+              fontWeight: "500",
+              fontSize: "0.85rem",
+              borderRadius: "6px",
+            }}
+          >
+            <FaDownload size={14} /> Export
+          </button>
+ 
           {/* Table */}
-          <div className="adviser-cred-table">
-            <table className="table table-bordered table-sm align-middle mb-0">
-              <thead>
+          <div className="student-cred-table">
+            <table className="table table-sm align-middle mb-0">
+              <thead style={{ backgroundColor: "#f8f8f8" }}>
+                {/* Search & Header Action Row */}
+                <tr>
+                  <th colSpan="5" style={{ padding: "10px 12px", textAlign: "left" }}>
+                    <input
+                      type="text"
+                      placeholder="Search adviser..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="form-control"
+                      style={{ fontSize: "0.9rem", maxWidth: "200px" }}
+                    />
+                  </th>
+                  <th colSpan="2" style={{ textAlign: "right", padding: "10px 12px" }}>
+                    <div style={{ position: "relative", display: "inline-block" }}>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => setOpenHeaderAction(!openHeaderAction)}
+                        style={{
+                          backgroundColor: "transparent",
+                          color: "#3B0304",
+                          padding: "4px 8px",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <FaEllipsisV />
+                      </button>
+                      {openHeaderAction && (
+                        <ul
+                          className="dropdown-menu show"
+                          style={{
+                            position: "absolute",
+                            top: "100%",
+                            right: 0,
+                            zIndex: 10,
+                            backgroundColor: "white",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                            padding: "0",
+                            margin: "4px 0 0 0",
+                            minWidth: "160px",
+                          }}
+                        >
+                          <li>
+                            <button
+                              className="dropdown-item"
+                              onClick={() => setOpenHeaderAction(false)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                width: "100%",
+                                padding: "8px 12px",
+                                textAlign: "left",
+                                cursor: "pointer",
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              Reset All Password
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              className="dropdown-item text-danger"
+                              onClick={() => setOpenHeaderAction(false)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                width: "100%",
+                                padding: "8px 12px",
+                                textAlign: "left",
+                                cursor: "pointer",
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              Delete Selected
+                            </button>
+                          </li>
+                        </ul>
+                      )}
+                    </div>
+                  </th>
+                </tr>
+ 
+                {/* Column Headers */}
                 <tr>
                   <th>NO</th>
                   <th>Last Name</th>
                   <th>First Name</th>
                   <th>Middle Name</th>
-                  <th>Student ID</th>
+                  <th>Adviser ID</th>
                   <th>Password</th>
                   <th>Action</th>
                 </tr>
               </thead>
+ 
               <tbody>
                 {loading ? (
                   <tr>
@@ -315,53 +261,91 @@ const handleResetAllPasswords = async () => {
                   </tr>
                 ) : (
                   filteredData.map((row, index) => (
-                    <tr key={index}>
+                    <tr
+                      key={row.id}
+                      style={{
+                        backgroundColor: index % 2 === 0 ? "#F0F0F0" : "white",
+                      }}
+                    >
                       <td>{index + 1}</td>
                       <td>{row.last_name}</td>
                       <td>{row.first_name}</td>
                       <td>{row.middle_name}</td>
                       <td>{row.user_id}</td>
                       <td>{row.password}</td>
-                      <td>
-                        <div className="position-relative d-inline-block">
-                          <button
-                            className="btn btn-sm adviser-cred-action-btn"
-                            onClick={() =>
-                              setOpenDropdown(openDropdown === index ? null : index)
-                            }
+                      <td style={{ position: "relative" }}>
+                        <button
+                          className="btn btn-sm"
+                          onClick={() =>
+                            setOpenDropdownRow(openDropdownRow === index ? null : index)
+                          }
+                          style={{
+                            background: "transparent",
+                            color: "#3B0304",
+                            padding: "2px 6px",
+                            border: "none",
+                            fontSize: "0.9rem",
+                          }}
+                        >
+                          <FaEllipsisV />
+                        </button>
+                        {openDropdownRow === index && (
+                          <ul
+                            className="dropdown-menu show"
+                            style={{
+                              position: "absolute",
+                              top: "100%",
+                              right: 0,
+                              zIndex: 10,
+                              backgroundColor: "white",
+                              border: "1px solid #ccc",
+                              borderRadius: "4px",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                              padding: "0",
+                              margin: "4px 0 0 0",
+                              minWidth: "120px",
+                            }}
                           >
-                            <FaEllipsisV />
-                          </button>
-                          {openDropdown === index && (
-  <ul className="dropdown-menu show adviser-cred-dropdown">
-    <li>
-      <button
-        className="dropdown-item"
-        onClick={() => handleEditRow(row, index)}
-      >
-        ✏️ Edit
-      </button>
-    </li>
-    <li>
-      <button
-        className="dropdown-item"
-        onClick={() => handleResetPassword(row, index)}
-      >
-        🔑 Reset Password
-      </button>
-    </li>
-    <li>
-      <button
-        className="dropdown-item text-danger"
-        onClick={() => handleDelete(row.id)}
-      >
-        🗑 Delete
-      </button>
-    </li>
-  </ul>
-)}
-
-                        </div>
+                            <li>
+                              <button
+                                className="dropdown-item"
+                                onClick={() => {
+                                  setOpenDropdownRow(null);
+                                  handleEditRow(row, index);
+                                }}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  width: "100%",
+                                  padding: "8px 12px",
+                                  textAlign: "left",
+                                  fontSize: "0.85rem",
+                                }}
+                              >
+                                ✏️ Edit
+                              </button>
+                            </li>
+                            <li>
+                              <button
+                                className="dropdown-item text-danger"
+                                onClick={() => {
+                                  setOpenDropdownRow(null);
+                                  handleDelete(row.id);
+                                }}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  width: "100%",
+                                  padding: "8px 12px",
+                                  textAlign: "left",
+                                  fontSize: "0.85rem",
+                                }}
+                              >
+                                🗑 Delete
+                              </button>
+                            </li>
+                          </ul>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -374,5 +358,5 @@ const handleResetAllPasswords = async () => {
     </div>
   );
 };
-
+ 
 export default AdviserCredentials;

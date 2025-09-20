@@ -7,7 +7,7 @@ import searchIcon from "../../../assets/search-icon.png";
 import "../../Style/Adviser/Task/AdviserOralDef.css";
 
 // Import logic functions
-import { fetchTasksFromDB, handleCreateTask } from "../../../services/Adviser/AdCapsTask";
+import { fetchTasksFromDB, handleCreateTask, handleUpdateStatus } from "../../../services/Adviser/AdCapsTask";
 
 const AdviserOralDef = () => {
   const [tasks, setTasks] = useState([]);
@@ -89,7 +89,17 @@ const AdviserOralDef = () => {
                 <td>{t.task_type}</td>
                 <td>{t.subtask}</td>
                 <td>{t.elements}</td>
-                <td>{t.status}</td>
+                <td>
+ <select
+  value={t.status || "To Do"}
+  onChange={(e) => handleUpdateStatus(t.id, e.target.value, setTasks)}
+  className="form-select">
+  <option value="To Do">To Do</option>
+  <option value="In Progress">In Progress</option>
+  <option value="To Review">To Review</option>
+  <option value="Completed">Completed</option>
+</select>
+</td>
                 <td>
                   {t.date_created
                     ? new Date(t.date_created).toLocaleDateString("en-US")

@@ -17,7 +17,14 @@ import Schedule from "./components/Instructor/Schedule";
 
 // CAPSTONE ADVISER
 import AdviserTask from "./components/CapstoneAdviser/AdviserTask/AdviserTask";
+
 import AdviserOralDef from "./components/CapstoneAdviser/AdviserTask/AdviserOralDef";
+import AdviserFinalDef from "./components/CapstoneAdviser/AdviserTask/AdviserFinalDef";
+
+
+
+
+
 //PROJECT MANAGER
 import ManagerTask from "./components/ProjectManager/ManagerTask/ManagerTask";
   import ManagerFinalDefense from "./components/ProjectManager/ManagerTask/ManagerFinalDefense";
