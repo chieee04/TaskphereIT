@@ -12,6 +12,7 @@ import dueDateIcon from "../../../assets/due-date-icon.png";
 import timeIcon from "../../../assets/time-icon.png";
 import redDropdownIcon from "../../../assets/red-dropdown-icon.png";
 import dropdownIconWhite from "../../../assets/dropdown-icon-white.png";
+import { openCreateOralDefTask } from "../../../services/Manager/ManagerCreateOralDef";
 
 const ManagerOralDefense = () => {
   const [status, setStatus] = useState("To Review");
@@ -100,11 +101,17 @@ const ManagerOralDefense = () => {
       <hr className="divider" />
 
       <div className="header-wrapper">
-        <button
-          type="button"
-          className="create-task-button"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
+       <button
+         type="button"
+         className="create-task-button"
+         onClick={async () => {
+           const newTask = await openCreateOralDefTask();
+           if (newTask) {
+             console.log("New Task Created:", newTask);
+             // dito mo na i-save sa DB o state
+           }
+         }}
+       >
           <img
             src={createTasksIcon}
             alt="Create Task Icon"
@@ -288,10 +295,6 @@ const ManagerOralDefense = () => {
               </tr>
             </tbody>
           </table>
-
-          {isCreateModalOpen && (
-            <OralCreateTasks onClose={() => setIsCreateModalOpen(false)} onCreate={handleCreate} />
-          )}
         </div>
       </div>
     </div>

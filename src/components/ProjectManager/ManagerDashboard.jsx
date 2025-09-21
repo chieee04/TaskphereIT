@@ -5,6 +5,7 @@ import AdviserTasks from "./ManagerAdviserTask"
 import MemberTaskBoard from "../Member/MemberTaskBoard";
 import MemberTaskRecord from "../Member/MemberTaskRecord";
 import ManagerTitleDefense from "./ManagerTask/ManagerTitleDefense";
+import ManagerOralDefense from "./ManagerTask/ManagerOralDefense";
 const ManagerDashboard = () => {
   const [activePage, setActivePage] = useState("Dashboard");
 
@@ -16,8 +17,8 @@ case "Adviser Tasks":
         return <AdviserTasks />;
       case "Title Defense":
         return <ManagerTitleDefense />;
-      case "Tasks Board":
-        return <MemberTaskBoard />;
+      case "Oral Defense":
+        return <ManagerOralDefense />;
       case "Tasks Record":
         return <MemberTaskRecord />;
       case "StudentCredentials":

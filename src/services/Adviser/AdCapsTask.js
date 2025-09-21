@@ -287,6 +287,7 @@ export const handleCreateTask = async (setTasks) => {
   const projectPhaseOptionsHtml = [
     `<option value="" disabled selected hidden></option>`,
     `<option value="Designing">Designing</option>`,
+    `<option value="Prototyping">Prototyping</option>`,
   ].join("");
 
 //lahat ng nasa task
@@ -575,6 +576,22 @@ const raddocumentationTasks = [
         <option value="Discussion & Review">Discussion & Review</option>
       `;
       taskTypeSelect.disabled = false;
+    }else if (value === "Prototyping"){
+      //reset
+      taskSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+      taskSelect.disabled = true;
+      subtaskSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+      subtaskSelect.disabled = true;
+      elementsSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
+
+      elementsSelect.disabled = true;
+      projectPhaseSelect.disabled = false;
+      projectPhaseSelect.innerHTML = `
+        <option value="" disabled selected hidden></option>
+        <option value="">Quick Design</option>
+        <option value="">Build Prototype</option>
+      `;
+      taskTypeSelect.disabled = true;
     }
     else {
       projectPhaseSelect.value = `<option value="" disabled selected hidden></option>`;
@@ -598,6 +615,7 @@ const raddocumentationTasks = [
   elementsSelect.disabled = true;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+
   if (value === "radDocumentation") {
     taskSelect.innerHTML = `
       <option value="" disabled selected hidden></option>

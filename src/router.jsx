@@ -26,13 +26,11 @@ import AdviserFinalDef from "./components/CapstoneAdviser/AdviserTask/AdviserFin
 
 
 //PROJECT MANAGER
-import ManagerTask from "./components/ProjectManager/ManagerTask/ManagerTask";
+//import ManagerTask from "./components/ProjectManager/ManagerTask/ManagerTask";
   import ManagerFinalDefense from "./components/ProjectManager/ManagerTask/ManagerFinalDefense";
-  import ManagerFinalCreate from "./components/ProjectManager/ManagerTask/ManagerFinalCreate";
   import ManagerOralDefense from "./components/ProjectManager/ManagerTask/ManagerOralDefense";
-  import ManagerOralCreate from "./components/ProjectManager/ManagerTask/ManagerOralCreate";
   import ManagerTitleDefense from "./components/ProjectManager/ManagerTask/ManagerTitleDefense";
-  import ManagerTitleCreate from "./components/ProjectManager/ManagerTask/ManagerTitleCreate";
+  //import ManagerTitleCreate from "./components/ProjectManager/ManagerTask/ManagerTitleCreate";
 import ManagerTaskRecord from "./components/ProjectManager/ManagerTaskRecord/ManagerTaskRecord";
   import ManagerFinalRecord from "./components/ProjectManager/ManagerTaskRecord/ManagerFinalRecord";
   import ManagerOralRecord from "./components/ProjectManager/ManagerTaskRecord/ManagerOralRecord";

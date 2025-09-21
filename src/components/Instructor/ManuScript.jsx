@@ -13,6 +13,9 @@ const ManuScript = () => {
   const [schedules, setSchedules] = useState([]);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [search, setSearch] = useState("");
+  const [advisers, setAdvisers] = useState([]);
+  const [selectedAdviser, setSelectedAdviser] = useState(null);
+
 
   // Verdict mapping
   const verdictMap = {
@@ -20,7 +23,20 @@ const ManuScript = () => {
     2: "Re-Def",
     3: "Completed",
   };
+useEffect(() => {
+  const fetchAdvisers = async () => {
+    const { data, error } = await supabase
+      .from("user_credentials")
+      .select("*")
+      .eq("user_roles", 3)
+      .not("adviser_group", "is", null);
 
+    if (!error) {
+      setAdvisers(data);
+    }
+  };
+  fetchAdvisers();
+}, []);
   // Fetch accounts & manuscript schedules
   useEffect(() => {
     const fetchData = async () => {
@@ -48,98 +64,161 @@ const ManuScript = () => {
 
     fetchData();
   }, []);
+const handleAdviserChange = async (e) => {
+  const adviserId = e.target.value;
+  setSelectedAdviser(adviserId);
 
+  // get adviser_group of selected adviser
+  const { data: adviser } = await supabase
+    .from("user_credentials")
+    .select("adviser_group")
+    .eq("id", adviserId)
+    .single();
+
+  if (adviser?.adviser_group) {
+    // fetch all managers (role=1) under same adviser_group
+    const { data: managerTeams } = await supabase
+      .from("user_credentials")
+      .select("id, group_name, group_number")
+      .eq("user_roles", 1)
+      .eq("adviser_group", adviser.adviser_group);
+
+    setTeams(managerTeams || []);
+  }
+};
   // Create schedule
-  const handleCreateSchedule = () => {
-    MySwal.fire({
-      title: `<div style="color:#3B0304; font-weight:600; display:flex; align-items:center; gap:8px;">
-        <i class="bi bi-journal-text"></i> Create Manuscript Schedule</div>`,
-      html: `
-        <div class="mb-3">
-          <label style="font-weight:600;">Assign Team</label>
-          <select id="teamSelect" class="form-select">
-            <option disabled selected value="">Select</option>
-            ${teams
-              .filter(
-                (t) =>
-                  !schedules.some(
-                    (s) =>
-                      accounts.find((a) => a.id === s.manager_id)?.group_name ===
-                      t
-                  )
-              )
-              .map((t) => `<option value="${t}">${t}</option>`)
-              .join("")}
-          </select>
-        </div>
-        <div class="mb-3">
-          <label style="font-weight:600;">Date</label>
-          <input type="date" id="scheduleDate" class="form-control"/>
-        </div>
-        <div class="mb-3">
-          <label style="font-weight:600;">Time</label>
-          <input type="time" id="scheduleTime" class="form-control"/>
-        </div>`,
-      showCancelButton: true,
-      confirmButtonText: "Create",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#8B0000",
-      width: "500px",
-      preConfirm: () => {
-        const team = document.getElementById("teamSelect").value;
-        const date = document.getElementById("scheduleDate").value;
-        const time = document.getElementById("scheduleTime").value;
+  // Create schedule
+const handleCreateSchedule = () => {
+  MySwal.fire({
+    title: `<div style="color:#3B0304; font-weight:600; display:flex; align-items:center; gap:8px;">
+      <i class="bi bi-journal-text"></i> Create Manuscript Schedule</div>`,
+    html: `
+  <div class="mb-3">
+    <label style="font-weight:600;">Assign Adviser</label>
+    <select id="adviserSelect" class="form-select">
+      <option disabled selected value="">Select Adviser</option>
+      ${advisers
+        .map(
+          (a) => `
+            <option value="${a.id}">
+              ${a.last_name}, ${a.first_name} (Group ${a.adviser_group})
+            </option>`
+        )
+        .join("")}
+    </select>
+  </div>
 
-        if (!team || !date || !time) {
-          MySwal.showValidationMessage("Please fill all fields");
-          return false;
-        }
-        return { team, date, time };
-      },
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const { team, date, time } = result.value;
+  <div class="mb-3">
+    <label style="font-weight:600;">Assign Team</label>
+    <select id="teamSelect" class="form-select" disabled>
+      <option disabled selected value="">Select Team</option>
+    </select>
+  </div>
 
-        // Hanapin manager_id ng team
-        const teamManager = accounts.find(
-          (a) => a.group_name === team && a.user_roles === 1
-        );
+  <div class="mb-3">
+    <label style="font-weight:600;">Date</label>
+    <input type="date" id="scheduleDate" class="form-control"/>
+  </div>
+  <div class="mb-3">
+    <label style="font-weight:600;">Time</label>
+    <input type="time" id="scheduleTime" class="form-control"/>
+  </div>`,
+    showCancelButton: true,
+    confirmButtonText: "Create",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#8B0000",
+    width: "500px",didOpen: () => {
+  const adviserSelect = document.getElementById("adviserSelect");
+  const teamSelect = document.getElementById("teamSelect");
 
-        if (!teamManager) {
-          MySwal.fire("Error", "No manager found for this team.", "error");
-          return;
-        }
+  adviserSelect.addEventListener("change", async (e) => {
+    const adviserId = e.target.value;
 
-        const { error, data } = await supabase
-          .from("user_manuscript_sched")
-          .insert([
-            {
-              manager_id: teamManager.id,
-              date,
-              time,
-              plagiarism: 0,
-              ai: 0,
-              file_uploaded: null,
-              verdict: 1, // default Pending
-            },
-          ])
-          .select();
+    // kunin adviser_group ng piniling adviser
+    const { data: adviser } = await supabase
+      .from("user_credentials")
+      .select("adviser_group")
+      .eq("id", adviserId)
+      .single();
 
-        if (error) {
-          console.error("Insert error:", error);
-          MySwal.fire("Error", "Failed to create schedule", "error");
-        } else {
-          setSchedules((prev) => [...prev, data[0]]);
-          MySwal.fire({
-            icon: "success",
-            title: "✓ Schedule Created",
-            showConfirmButton: false,
-            timer: 1500,
-          });
-        }
+    if (adviser?.adviser_group) {
+      // kunin lahat ng managers (role=1) sa adviser_group na iyon
+      const { data: managerTeams } = await supabase
+        .from("user_credentials")
+        .select("group_name")
+        .eq("user_roles", 1)
+        .eq("adviser_group", adviser.adviser_group);
+
+      // clear + enable teamSelect
+      teamSelect.innerHTML = `<option disabled selected value="">Select Team</option>`;
+      managerTeams?.forEach((t) => {
+        const opt = document.createElement("option");
+        opt.value = t.group_name;
+        opt.textContent = t.group_name;
+        teamSelect.appendChild(opt);
+      });
+      teamSelect.disabled = false;
+    }
+  });
+},
+    preConfirm: () => {
+  const adviser = document.getElementById("adviserSelect").value;
+  const team = document.getElementById("teamSelect").value;
+  const date = document.getElementById("scheduleDate").value;
+  const time = document.getElementById("scheduleTime").value;
+
+  if (!adviser || !team || !date || !time) {
+    MySwal.showValidationMessage("Please fill all fields");
+    return false;
+  }
+  return { adviser, team, date, time };
+},
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const { adviser, team, date, time } = result.value;
+
+      // Hanapin manager_id ng team
+      const teamManager = accounts.find(
+        (a) => a.group_name === team && a.user_roles === 1
+      );
+
+      if (!teamManager) {
+        MySwal.fire("Error", "No manager found for this team.", "error");
+        return;
       }
-    });
-  };
+
+      const { error, data } = await supabase
+        .from("user_manuscript_sched")
+        .insert([
+          {
+            manager_id: teamManager.id,
+            adviser_id: adviser, // ✅ bagong field
+            date,
+            time,
+            plagiarism: 0,
+            ai: 0,
+            file_uploaded: null,
+            verdict: 1, // default Pending
+          },
+        ])
+        .select();
+
+      if (error) {
+        console.error("Insert error:", error);
+        MySwal.fire("Error", "Failed to create schedule", "error");
+      } else {
+        setSchedules((prev) => [...prev, data[0]]);
+        MySwal.fire({
+          icon: "success",
+          title: "✓ Schedule Created",
+          showConfirmButton: false,
+          timer: 1500,
+        });
+      }
+    }
+  });
+};
+
 
   // Delete schedule
   const handleDelete = async (id) => {
