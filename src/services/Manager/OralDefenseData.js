@@ -14,7 +14,6 @@ export const oralDefenseData = {
         Objectives: ["General Objectives", "Specific Objectives"],
         "Scope and Limitation": ["Scope", "Limitation"],
       },
-
       "Prepare: Chapter 2": {
         "Related Theories": [],
         "Related Literature": [],

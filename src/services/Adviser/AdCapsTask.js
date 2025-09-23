@@ -519,6 +519,11 @@ const raddocumentationTasks = [
     "Capstone Meeting", "Adviser Consultation",
     "Interview User/ Client", "Gather Feedback from the User/Clien",
   ];
+  /*const discussionTasks = [
+    "Capstone Meeting", "Adviser Consultation",
+    "Interview User/ Client", "Gather Feedback from the User/Clien",
+  ];*/
+  
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -583,13 +588,12 @@ const raddocumentationTasks = [
       subtaskSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
       subtaskSelect.disabled = true;
       elementsSelect.innerHTML = `<option value="" disabled selected hidden></option>`;
-
       elementsSelect.disabled = true;
       projectPhaseSelect.disabled = false;
       projectPhaseSelect.innerHTML = `
         <option value="" disabled selected hidden></option>
-        <option value="">Quick Design</option>
-        <option value="">Build Prototype</option>
+        <option value="Quick Design">Quick Design</option>
+        <option value="Build Prototype">Build Prototype</option>
       `;
       taskTypeSelect.disabled = true;
     }
