@@ -1,53 +1,79 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../../supabaseClient";
 import eventsIcon from "../../../assets/events-icon.png";
 import dueDateIcon from "../../../assets/due-date-icon.png";
 import timeIcon from "../../../assets/time-icon.png";
-import redDropdownIcon from "../../../assets/red-dropdown-icon.png";
-import dropdownIconWhite from "../../../assets/dropdown-icon-white.png";
 
 export default function AdviserManuResult() {
-  const [status, setStatus] = useState("Pending");
-  const [plagiarism, setPlagiarism] = useState("75%");
-  const [aiScore, setAiScore] = useState("20%");
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [showPlagiarismDropdown, setShowPlagiarismDropdown] = useState(false);
-  const [showAiDropdown, setShowAiDropdown] = useState(false);
+  const [schedules, setSchedules] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [customUser, setCustomUser] = useState(null);
 
-  const statusRef = useRef(null);
-  const plagiarismRef = useRef(null);
-  const aiRef = useRef(null);
-
-  const STATUS_OPTIONS = ["Pending", "Re‑Check", "Passed"];
-  const PERCENTAGE_OPTIONS = Array.from({ length: 101 }, (_, i) => `${i}%`);
-
-  const getStatusColor = (value) => {
-    switch (value) {
-      case "Pending":
-        return "#9E9E9E";
-      case "Re‑Check":
-        return "#D32F2F";
-      case "Passed":
-        return "#809D3C";
-      default:
-        return "#ccc";
-    }
-  };
+  const PERCENTAGE_OPTIONS = Array.from({ length: 21 }, (_, i) => i * 5); // 0–100
+  const REVISION_OPTIONS = [
+    { label: "No Revision", value: 0 },
+    { label: "1st Revision", value: 1 },
+    { label: "2nd Revision", value: 2 },
+    { label: "3rd Revision", value: 3 },
+    { label: "4th Revision", value: 4 },
+    { label: "5th Revision", value: 5 },
+    { label: "6th Revision", value: 6 },
+    { label: "7th Revision", value: 7 },
+    { label: "8th Revision", value: 8 },
+    { label: "9th Revision", value: 9 },
+    { label: "10th Revision", value: 10 },
+  ];
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (statusRef.current && !statusRef.current.contains(e.target)) {
-        setShowStatusDropdown(false);
-      }
-      if (plagiarismRef.current && !plagiarismRef.current.contains(e.target)) {
-        setShowPlagiarismDropdown(false);
-      }
-      if (aiRef.current && !aiRef.current.contains(e.target)) {
-        setShowAiDropdown(false);
+    const fetchData = async () => {
+      const storedUser = JSON.parse(localStorage.getItem("customUser"));
+      if (!storedUser) return;
+      setCustomUser(storedUser);
+
+      const adviserId = storedUser.id;
+
+      const { data: accData } = await supabase.from("user_credentials").select("*");
+      setAccounts(accData || []);
+
+      const { data: schedData, error } = await supabase
+        .from("user_manuscript_sched")
+        .select("*")
+        .eq("adviser_id", adviserId);
+
+      if (!error) {
+        setSchedules(
+          (schedData || []).map((s) => ({
+            ...s,
+            plagiarism: s.plagiarism ?? 0,
+            ai: s.ai ?? 0,
+            status: s.status ?? 0,
+          }))
+        );
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    fetchData();
   }, []);
+
+  const getName = (id) => {
+    const person = accounts.find((a) => a.id === id);
+    return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
+  };
+
+  // ✅ Update field both locally and in Supabase
+  const updateField = async (rowId, field, value) => {
+    setSchedules((prev) =>
+      prev.map((s) => (s.id === rowId ? { ...s, [field]: value } : s))
+    );
+
+    const { error } = await supabase
+      .from("user_manuscript_sched")
+      .update({ [field]: value })
+      .eq("id", rowId);
+
+    if (error) {
+      console.error(`Error updating ${field}:`, error.message);
+    }
+  };
 
   return (
     <div className="page-wrapper">
@@ -69,313 +95,95 @@ export default function AdviserManuResult() {
               <th>PLAGIARISM</th>
               <th>AI</th>
               <th>FILE</th>
-              <th>STATUS</th>
+              <th>REVISION</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>1.</td>
-              <td>Team Alpha</td>
-              <td className="wrap-text">Automated Watering System</td>
-              <td>
-                <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
-                Sep 25, 2025
-              </td>
-              <td>
-                <img src={timeIcon} alt="Time" className="inline-icon" />
-                3:30 PM
-              </td>
+            {schedules.length > 0 ? (
+              schedules.map((sched, idx) => (
+                <tr key={sched.id}>
+                  <td>{idx + 1}.</td>
+                  <td>{getName(sched.manager_id)}</td>
+                  <td className="wrap-text">{sched.project_title || "Untitled"}</td>
+                  <td>
+                    <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
+                    {sched.date
+                      ? new Date(sched.date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                  </td>
+                  <td>
+                    <img src={timeIcon} alt="Time" className="inline-icon" />
+                    {sched.time || "N/A"}
+                  </td>
 
-              {/* Plagiarism */}
-              <td ref={plagiarismRef}>
-                <div
-                  className="dropdown-wrapper narrow"
-                  onClick={() =>
-                    setShowPlagiarismDropdown(!showPlagiarismDropdown)
-                  }
-                >
-                  <div className="revision-badge">
-                    {plagiarism}
-                    <img
-                      src={redDropdownIcon}
-                      alt="▼"
-                      className="revision-dropdown-icon"
-                    />
-                  </div>
-                  {showPlagiarismDropdown && (
-                    <div className="dropdown-menu">
+                  {/* ✅ Plagiarism Dropdown */}
+                  <td>
+                    <select
+                      value={sched.plagiarism}
+                      onChange={(e) =>
+                        updateField(sched.id, "plagiarism", parseInt(e.target.value))
+                      }
+                    >
                       {PERCENTAGE_OPTIONS.map((opt) => (
-                        <div
-                          key={opt}
-                          className="dropdown-item"
-                          onClick={() => {
-                            setPlagiarism(opt);
-                            setShowPlagiarismDropdown(false);
-                          }}
-                        >
-                          {opt}
-                        </div>
+                        <option key={opt} value={opt}>
+                          {opt}%
+                        </option>
                       ))}
-                    </div>
-                  )}
-                </div>
-              </td>
+                    </select>
+                  </td>
 
-              {/* AI Score */}
-              <td ref={aiRef}>
-                <div
-                  className="dropdown-wrapper narrow ai-wrapper"
-                  onClick={() => setShowAiDropdown(!showAiDropdown)}
-                >
-                  <div className="revision-badge ai-badge">
-                    {aiScore}
-                    <img
-                      src={redDropdownIcon}
-                      alt="▼"
-                      className="revision-dropdown-icon"
-                    />
-                  </div>
-                  {showAiDropdown && (
-                    <div className="dropdown-menu ai-dropdown-menu">
+                  {/* ✅ AI Dropdown */}
+                  <td>
+                    <select
+                      value={sched.ai}
+                      onChange={(e) =>
+                        updateField(sched.id, "ai", parseInt(e.target.value))
+                      }
+                    >
                       {PERCENTAGE_OPTIONS.map((opt) => (
-                        <div
-                          key={opt}
-                          className="dropdown-item"
-                          onClick={() => {
-                            setAiScore(opt);
-                            setShowAiDropdown(false);
-                          }}
-                        >
-                          {opt}
-                        </div>
+                        <option key={opt} value={opt}>
+                          {opt}%
+                        </option>
                       ))}
-                    </div>
-                  )}
-                </div>
-              </td>
+                    </select>
+                  </td>
 
-              {/* File Upload */}
-              <td>
-                <div className="upload-box">Upload</div>
-              </td>
+                  {/* File Upload */}
+                  <td>
+                    <div className="upload-box">Upload</div>
+                  </td>
 
-              {/* Status */}
-              <td ref={statusRef}>
-                <div className="dropdown-wrapper status-wrapper">
-                  <div
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(status) }}
-                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  >
-                    {status}
-                    <img
-                      src={dropdownIconWhite}
-                      alt="▼"
-                      className="status-dropdown-icon"
-                    />
-                  </div>
-                  {showStatusDropdown && (
-                    <div className="dropdown-menu status-dropdown-menu">
-                      {STATUS_OPTIONS.map((opt) => (
-                        <div
-                          key={opt}
-                          className="dropdown-item"
-                          onClick={() => {
-                            setStatus(opt);
-                            setShowStatusDropdown(false);
-                          }}
-                        >
-                          {opt}
-                        </div>
+                  {/* ✅ Revision Dropdown */}
+                  <td>
+                    <select
+                      value={sched.status}
+                      onChange={(e) =>
+                        updateField(sched.id, "status", parseInt(e.target.value))
+                      }
+                    >
+                      {REVISION_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
-                    </div>
-                  )}
-                </div>
-              </td>
-            </tr>
+                    </select>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
+                  No schedules found for you as adviser.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-
-      <style>{`
-        * {
-          box-sizing: border-box;
-        }
-
-        .page-wrapper {
-          width: 100%;
-          padding: 40px 20px;
-        }
-
-        .section-title {
-          font-size: 20px;
-          font-weight: bold;
-          color: #3B0304;
-          margin-bottom: 5px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .icon-image {
-          width: 24px;
-          height: 24px;
-        }
-
-        .divider {
-          border: none;
-          border-top: 2px solid #3B0304;
-          margin-bottom: 20px;
-        }
-
-        .tasks-container {
-          background: #fff;
-          border-radius: 20px;
-          width: 100%;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-          padding: 20px;
-          border: 1px solid #B2B2B2;
-        }
-
-        .tasks-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 14px;
-        }
-
-        .tasks-table th,
-        .tasks-table td {
-          padding: 10px 6px;
-          text-align: center;
-          vertical-align: middle;
-        }
-
-        .tasks-table th {
-          background-color: #fafafa;
-          font-weight: bold;
-        }
-
-        .wrap-text {
-          word-break: break-word;
-          white-space: normal;
-        }
-
-        .inline-icon {
-          width: 14px;
-          height: 14px;
-          margin-right: 4px;
-          vertical-align: middle;
-        }
-
-        .dropdown-wrapper {
-          position: relative;
-          width: 100%;
-        }
-
-        .dropdown-wrapper.narrow {
-          max-width: 72px;
-          margin: auto;
-        }
-
-        .ai-wrapper {
-          width: 72px;
-          margin: auto;
-        }
-
-        .ai-badge {
-          width: 72px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 4px 6px;
-          border: 1px solid #3B0304;
-          border-radius: 12px;
-          font-weight: bold;
-          color: #3B0304;
-          cursor: pointer;
-          font-size: 12px;
-        }
-
-        .revision-badge {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 4px 6px;
-          border: 1px solid #3B0304;
-          border-radius: 12px;
-          font-weight: bold;
-          color: #3B0304;
-          cursor: pointer;
-          font-size: 12px;
-        }
-
-        .revision-dropdown-icon,
-        .status-dropdown-icon {
-          width: 12px;
-          height: 12px;
-          margin-left: 6px;
-        }
-
-        .dropdown-menu {
-          position: absolute;
-          top: calc(100% + 6px);
-          left: 0;
-          background: #fff;
-          border: 1px solid #B2B2B2;
-          border-radius: 10px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-          z-index: 1000;
-          max-height: 180px;
-          overflow-y: auto;
-        }
-
-        .ai-dropdown-menu {
-          width: 72px;
-        }
-
-        .status-wrapper {
-          width: 100px;
-          margin: auto;
-        }
-
-        .status-badge {
-          width: 100px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 6px 10px;
-          border-radius: 12px;
-          color: #fff;
-          cursor: pointer;
-          font-weight: bold;
-          font-size: 12px;
-        }
-
-        .status-dropdown-menu {
-          width: 100px;
-        }
-
-        .dropdown-item {
-          padding: 6px 8px;
-          cursor: pointer;
-          font-size: 12px;
-        }
-
-        .dropdown-item:hover {
-          background-color: #f0f0f0;
-        }
-
-        .upload-box {
-          border: 1px solid #3B0304;
-          border-radius: 12px;
-          padding: 6px 10px;
-          color: #3B0304;
-          font-weight: bold;
-          font-size: 13px;
-          width: 70px;
-          margin: auto;
-        }
-      `}</style>
     </div>
   );
 }

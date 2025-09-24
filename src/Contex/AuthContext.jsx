@@ -49,6 +49,8 @@ export const AuthContextProvider = ({ children }) => {
   const logout = async () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("customUser");
+  localStorage.removeItem("adminUser");
     await supabase.auth.signOut(); // 🔹 Log out from Supabase too
   };
 

@@ -1,22 +1,26 @@
+// src/components/Signin.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import Swal from "sweetalert2";
 import "../components/Style/Style.css";
 import Logo1 from "../assets/img/Dct-Logo.png";
 import Logo2 from "../assets/img/Costum.png";
-import { supabase } from "../supabaseClient"; // ⬅️ Import Supabase client
+import { supabase } from "../supabaseClient";
+import { UserAuth } from "../Contex/AuthContext"; // ✅ Import AuthContext
 
 const Signin = () => {
-  const [userID, setUserID] = useState(""); // 🔹 Pwedeng email (Admin) o ID (Manager/Member)
-  const [password, setPassword] = useState(""); // 🔹 Password input
-  const [loading, setLoading] = useState(false); // 🔹 Para sa button loader state
+  const [userID, setUserID] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { setIsLoggedIn } = useOutletContext();
+  const { login } = UserAuth(); // ✅ Use global login function from AuthContext
 
   // 🔑 Main Sign In Function
   const handleSignIn = async (e) => {
-    e.preventDefault(); // Iwas page refresh
-    setLoading(true); // Start loader
+    e.preventDefault();
+    setLoading(true);
 
     try {
       // =====================================================
@@ -24,12 +28,15 @@ const Signin = () => {
       // =====================================================
       const { data: authData, error: authError } =
         await supabase.auth.signInWithPassword({
-          email: userID, // 🔹 Dapat email talaga kapag Admin
+          email: userID, // ✅ dapat email kapag Admin
           password,
         });
 
-      // ✅ Kapag walang error at may user = ADMIN LOGIN SUCCESS
       if (!authError && authData?.user) {
+        // ✅ Admin Login
+        login(authData.user); // ✅ Save sa AuthContext
+        setIsLoggedIn(true);
+
         Swal.fire({
           icon: "success",
           title: "Welcome Admin",
@@ -37,23 +44,20 @@ const Signin = () => {
           timer: 1500,
           showConfirmButton: false,
         });
-        navigate("/InstructorDashboard"); // ⬅️ Admin papasok dito
-        return; // Tapusin na rito kapag Admin login success
-        
+        navigate("/InstructorDashboard");
+        return;
       }
 
       // =====================================================
-      // STEP 2: KUNG HINDI ADMIN → CHECK SA CUSTOM TABLE
+      // STEP 2: CHECK SA CUSTOM TABLE (Managers, Members, Advisers)
       // =====================================================
       const { data: user, error: userError } = await supabase
-      
-        .from("user_credentials") // 🔹 Table name sa database mo
+        .from("user_credentials")
         .select("*")
-        .eq("user_id", userID) // Match by user_id ng table sa user_credentials
-        .eq("password", password) // ⚠️ NOTE: plaintext pa ito. Mas ok hashed in production
-        .single(); // Expect isa lang na row
+        .eq("user_id", userID)
+        .eq("password", password) // ⚠️ Plaintext (hash in prod)
+        .single();
 
-      // ❌ Kapag walang match o mali ang password
       if (userError || !user) {
         Swal.fire({
           icon: "error",
@@ -63,12 +67,15 @@ const Signin = () => {
         return;
       }
 
+      // ✅ Save custom user sa AuthContext
+      login(user);
+      localStorage.setItem("customUser", JSON.stringify(user)); // para sa sidebar
+      setIsLoggedIn(true);
+
       // =====================================================
       // STEP 3: ROLE-BASED NAVIGATION
       // =====================================================
       if (user.user_roles === 1) {
-        // Manager
-        localStorage.setItem("customUser", JSON.stringify(user));
         Swal.fire({
           icon: "success",
           title: "Login successful",
@@ -78,8 +85,6 @@ const Signin = () => {
         });
         navigate("/ManagerDashboard");
       } else if (user.user_roles === 2) {
-        // Member
-        localStorage.setItem("customUser", JSON.stringify(user));
         Swal.fire({
           icon: "success",
           title: "Login successful",
@@ -88,9 +93,7 @@ const Signin = () => {
           showConfirmButton: false,
         });
         navigate("/MemberDashboard");
-      }else if (user.user_roles === 3) {
-        // Member
-        localStorage.setItem("customUser", JSON.stringify(user));
+      } else if (user.user_roles === 3) {
         Swal.fire({
           icon: "success",
           title: "Login successful",
@@ -100,7 +103,6 @@ const Signin = () => {
         });
         navigate("/AdviserDashboard");
       } else {
-        // Unknown role
         Swal.fire({
           icon: "warning",
           title: "Unknown role",
@@ -108,14 +110,13 @@ const Signin = () => {
         });
       }
     } catch (err) {
-      // ❌ Catch-all error (system/server side)
       Swal.fire({
         icon: "error",
         title: "Server Error",
         text: "Something went wrong. Please try again later.",
       });
     } finally {
-      setLoading(false); // Stop loader kahit anong result
+      setLoading(false);
     }
   };
 
@@ -140,7 +141,7 @@ const Signin = () => {
                 onChange={(e) => setUserID(e.target.value)}
                 value={userID}
                 className="w-full p-3 border rounded"
-                type="text"   // 🔹 Flexible: pwedeng email or ID
+                type="text"
                 name="userID"
                 id="userID"
                 placeholder="Enter your email or ID"

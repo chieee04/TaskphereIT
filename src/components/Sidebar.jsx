@@ -57,17 +57,11 @@ const Sidebar = ({ activeItem, onSelect }) => {
   // ============================================================
   // 🔑 Sign Out
   // ============================================================
-  const handleSignOut = async (e) => {
+  const { logout } = UserAuth();
+
+const handleSignOut = async (e) => {
   e.preventDefault();
-
-  if (user_roles === 0) {
-    // Admin logout via Supabase Auth
-    await supabase.auth.signOut();
-  } else {
-    // Manager/Member
-    localStorage.removeItem("customUser");
-  }
-
+  await logout(); // ✅ ito magse-set ng user=null at clear lahat ng storage
   navigate("/");
 };
 
