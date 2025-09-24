@@ -1,13 +1,52 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { FaBell, FaUserCircle } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import Logo from "../assets/img/Logo.png";
 import { UserAuth } from "../Contex/AuthContext";
+
 const Header = () => {
   const { user, logout } = UserAuth();
+  const navigate = useNavigate();
+  const [activeUser, setActiveUser] = useState(null);
+
+  useEffect(() => {
+    if (user) {
+      setActiveUser(user);
+    } else {
+      const customUser = localStorage.getItem("customUser");
+      const adminUser = localStorage.getItem("adminUser");
+      if (customUser) setActiveUser(JSON.parse(customUser));
+      else if (adminUser) setActiveUser(JSON.parse(adminUser));
+      else setActiveUser(null); // ✅ clear agad pag wala
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
-    await logout(); // 🔹 clear supabase + localstorage
-    window.location.href = "/"; // redirect to homepage
+    await logout();
+
+    // ✅ clear local storage
+    localStorage.removeItem("customUser");
+    localStorage.removeItem("adminUser");
+
+    // ✅ clear local state
+    setActiveUser(null);
+
+    // redirect
+    navigate("/");
+  };
+
+  const handleProfileClick = () => {
+    const customUser = JSON.parse(localStorage.getItem("customUser"));
+
+    if (customUser?.user_roles === 1) {
+      navigate("/ManagerDashboard", { state: { activePage: "Profile" } });
+    } else if (customUser?.user_roles === 2) {
+      navigate("/MemberDashboard", { state: { activePage: "Profile" } });
+    } else if (customUser?.user_roles === 3) {
+      navigate("/AdviserDashboard", { state: { activePage: "Profile" } });
+    } else {
+      navigate("/Profile");
+    }
   };
 
   return (
@@ -23,69 +62,32 @@ const Header = () => {
         height: "60px",
       }}
     >
-      {/* 🔹 Left side - Logo */}
       <a href="/" style={{ display: "inline-block" }}>
         <img src={Logo} width="150" height="120" alt="Logo" />
       </a>
 
-      {/* 🔹 Right side - Extra controls */}
-      {user && (
+      {activeUser && (
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          {/* Toggle */}
           <label className="switch">
             <input type="checkbox" />
             <span className="slider round"></span>
           </label>
 
-          {/* Notification */}
           <button style={{ background: "none", border: "none", cursor: "pointer" }}>
             <FaBell size={20} />
           </button>
 
-          {/* Profile */}
           <button
             style={{ background: "none", border: "none", cursor: "pointer" }}
-            onClick={handleSignOut}
+            onClick={handleProfileClick}
           >
             <FaUserCircle size={22} />
           </button>
         </div>
       )}
-
-      <style>{`
-        .switch {
-          position: relative;
-          display: inline-block;
-          width: 40px;
-          height: 22px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background-color: #ccc;
-          transition: 0.4s;
-          border-radius: 22px;
-        }
-        .slider:before {
-          position: absolute;
-          content: "";
-          height: 16px; width: 16px;
-          left: 3px; bottom: 3px;
-          background-color: white;
-          transition: 0.4s;
-          border-radius: 50%;
-        }
-        input:checked + .slider {
-          background-color: #007bff;
-        }
-        input:checked + .slider:before {
-          transform: translateX(18px);
-        }
-      `}</style>
     </div>
   );
 };
+
 
 export default Header;

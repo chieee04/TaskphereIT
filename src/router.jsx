@@ -1,6 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "./App";
-import Signin from "./components/signin";
+import Signin from "./components/Signin";
 import Dashboard from "./components/Dashboard";
 
 //IT INSTRUCTOR
@@ -14,17 +14,10 @@ import Schedule from "./components/Instructor/Schedule";
   import ManuScript from "./components/Instructor/ManuScript";
   import OralDefense from "./components/Instructor/OralDefense";
   import TitleDefense from "./components/Instructor/TitleDefense";
-
 // CAPSTONE ADVISER
 import AdviserTask from "./components/CapstoneAdviser/AdviserTask/AdviserTask";
-
 import AdviserOralDef from "./components/CapstoneAdviser/AdviserTask/AdviserOralDef";
 import AdviserFinalDef from "./components/CapstoneAdviser/AdviserTask/AdviserFinalDef";
-
-
-
-
-
 //PROJECT MANAGER
 //import ManagerTask from "./components/ProjectManager/ManagerTask/ManagerTask";
   import ManagerFinalDefense from "./components/ProjectManager/ManagerTask/ManagerFinalDefense";
