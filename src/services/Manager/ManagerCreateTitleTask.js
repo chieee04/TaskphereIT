@@ -356,8 +356,4 @@ export const openMethodology = async (managerId) => {
 
   return null;
 };
-//current date
-//current time
-
-
 

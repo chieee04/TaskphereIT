@@ -81,9 +81,7 @@ const Adviser = () => {
         user_roles: 3, // Adviser role
       }));
  
-      const { error } = await supabase
-        .from("user_credentials")
-        .insert(dataToInsert);
+      const { error } = await supabase.from("user_credentials").insert(dataToInsert);
  
       if (error) throw error;
  
@@ -97,16 +95,74 @@ const Adviser = () => {
  
   const handleEditRow = (row, index) => {
     MySwal.fire({
-      title: "Edit Adviser",
+      title: "",
       html: `
-        <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder="Adviser ID" />
-        <input id="password" class="swal2-input" value="${row.password}" placeholder="Password" />
-        <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder="First Name" />
-        <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder="Last Name" />
-        <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder="Middle Name" />
+        <div style="text-align: left; padding-bottom: 10px; border-bottom: 2px solid #3B0304; display: flex; align-items: center; justify-content: space-between;">
+        <h5 style="margin: 0; display: flex; align-items: center; gap: 10px; font-weight: 600;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#3B0304" viewBox="0 0 16 16">
+            <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.254 7.465.707.708l-3 3-1.646-1.647a.5.5 0 0 1 0-.708l3-3z"/>
+            <path d="m14.207 2.5l-.707.707L13.5 3.707l.707-.707.646.646a.5.5 0 0 1 0 .708l-3 3-.707.707-.707-.707.707-.707 3-3 .707.707.646-.646a.5.5 0 0 1 0-.708l-3-3z"/>
+          </svg>
+          Adviser Details
+        </h5>
+        <button type="button" class="swal2-close" aria-label="Close this dialog" style="font-size: 1.5rem;">×</button>
+      </div>
+ 
+      <div style="padding: .9rem;margin-right: 3rem;">
+ 
+        <!-- Row 1 -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+          <div style="display: flex; flex-direction: column; flex: 1;">
+            <label for="user_id" style="font-weight: 500; margin-bottom: 0.25rem; margin-right: 3rem;">Adviser ID</label>
+            <input id="user_id" class="swal2-input" value="${row.user_id}" placeholder="Adviser ID"
+              style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
+          </div>
+          <div style="display: flex; flex-direction: column; flex: 1;">
+            <label for="password" style="font-weight: 500; margin-bottom: 0.25rem; margin-right: 3rem;">Password</label>
+            <input id="password" class="swal2-input" value="${row.password}" placeholder="Password"
+              style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
+          </div>
+        </div>
+ 
+        <!-- Row 2 -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; flex-direction: column; flex: 1;">
+            <label for="first_name" style="font-weight: 500; margin-bottom: 0.25rem; margin-left: 1.3rem;">First Name</label>
+            <input id="first_name" class="swal2-input" value="${row.first_name}" placeholder="First Name"
+              style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
+          </div>
+          <div style="display: flex; flex-direction: column; flex: 1;">
+            <label for="last_name" style="font-weight: 500; margin-bottom: 0.25rem; margin-left: 1.4rem;">Last Name</label>
+            <input id="last_name" class="swal2-input" value="${row.last_name}" placeholder="Last Name"
+              style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
+          </div>
+          <div style="display: flex; flex-direction: column; flex: 1;">
+            <label for="middle_name" style="font-weight: 500; margin-bottom: 0.25rem; margin-left: 1.8rem;">Middle Name</label>
+            <input id="middle_name" class="swal2-input" value="${row.middle_name}" placeholder="Middle Name"
+              style="border-radius: 8px; border: 1px solid #ccc; padding: 0.5rem 0.75rem; font-size: 1rem; text-align: left; width: 100%;" />
+          </div>
+        </div>
+          <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <button id="cancel-btn" class="swal2-cancel" style="border: 1px solid #3B0304; background-color: #fff; color: #000; font-weight: 500; padding: 0.5rem 1.5rem; border-radius: 8px; cursor: pointer;">Cancel</button>
+            <button id="save-btn" class="swal2-confirm" style="background-color: #3B0304; color: #fff; font-weight: 500; padding: 0.5rem 1.5rem; border-radius: 8px; cursor: pointer;">Save</button>
+          </div>
+        </div>
       `,
-      showCancelButton: true,
-      confirmButtonText: "Save",
+      showConfirmButton: false,
+      showCancelButton: false,
+      customClass: {
+        popup: 'custom-swal-popup',
+      },
+      didOpen: () => {
+        const popup = Swal.getPopup();
+        popup.querySelector('.swal2-close').onclick = () => Swal.close();
+        popup.querySelector('#save-btn').onclick = () => {
+          Swal.clickConfirm();
+        };
+        popup.querySelector('#cancel-btn').onclick = () => {
+          Swal.close();
+        };
+      },
       preConfirm: () => {
         return {
           user_id: document.getElementById("user_id").value,
@@ -246,6 +302,15 @@ const Adviser = () => {
                       color: "#3B0304",
                       fontWeight: "500",
                       cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#3B0304";
+                      e.currentTarget.style.color = "white";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#3B0304";
                     }}
                   >
                     Save
@@ -263,6 +328,15 @@ const Adviser = () => {
                       color: "#3B0304",
                       fontWeight: "500",
                       cursor: "pointer",
+                      transition: "all 0.3s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#3B0304";
+                      e.currentTarget.style.color = "white";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                      e.currentTarget.style.color = "#3B0304";
                     }}
                   >
                     Cancel
@@ -328,6 +402,7 @@ const Adviser = () => {
                     fontSize: "0.85rem",
                     borderRadius: "6px",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   Delete Selected

@@ -57,6 +57,7 @@ const Signin = () => {
         .eq("user_id", userID)
         .eq("password", password) // ⚠️ Plaintext (hash in prod)
         .single();
+        
 
       if (userError || !user) {
         Swal.fire({
@@ -71,6 +72,9 @@ const Signin = () => {
       login(user);
       localStorage.setItem("customUser", JSON.stringify(user)); // para sa sidebar
       setIsLoggedIn(true);
+await supabase.from("current_user").upsert([
+  { id: true, user_id: user.id } // ✅ overwrite existing row
+]);
 
       // =====================================================
       // STEP 3: ROLE-BASED NAVIGATION

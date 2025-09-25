@@ -1,21 +1,61 @@
 // src/components/ManagerProfile.jsx
 import React, { useEffect, useState } from "react";
-//import { supabase } from "../../supabaseClient";
+import { supabase } from "../supabaseClient"; // make sure this is correct
 import { FaUserCircle } from "react-icons/fa";
 
 const Profile = () => {
   const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("customUser"));
-    if (storedUser) {
-      setUserData(storedUser);
-    }
+    const fetchCurrentUser = async () => {
+      try {
+        // 1️⃣ Get the currently signed-in user_id from current_user table
+        const { data: current, error: currentError } = await supabase
+          .from("current_user")
+          .select("user_id")
+          .single();
+
+        if (currentError || !current) {
+          console.error("❌ Error fetching current user:", currentError);
+          setLoading(false);
+          return;
+        }
+
+        const userId = current.user_id;
+
+        // 2️⃣ Fetch user info from user_credentials
+        const { data: user, error: userError } = await supabase
+          .from("user_credentials")
+          .select("user_id, first_name, last_name, middle_name, user_roles")
+          .eq("id", userId)
+          .single();
+
+        if (userError || !user) {
+          console.error("❌ Error fetching user info:", userError);
+          setLoading(false);
+          return;
+        }
+
+        setUserData(user);
+      } catch (err) {
+        console.error("❌ Unexpected error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCurrentUser();
   }, []);
 
-  if (!userData) {
-    return <p style={{ textAlign: "center" }}>Loading profile...</p>;
-  }
+  if (loading) return <p style={{ textAlign: "center" }}>Loading profile...</p>;
+  if (!userData) return <p style={{ textAlign: "center" }}>User not found</p>;
+
+  const roleMap = {
+    1: "Project Manager",
+    2: "Member",
+    3: "Adviser",
+  };
 
   return (
     <div style={styles.container}>
@@ -37,7 +77,6 @@ const Profile = () => {
 
         {/* Right: Details */}
         <div style={styles.rightSection}>
-          {/* Personal + Security */}
           <div style={styles.detailsWrapper}>
             {/* Personal Details */}
             <div style={styles.detailSection}>
@@ -49,29 +88,24 @@ const Profile = () => {
               <input style={styles.input} value={userData.first_name} readOnly />
 
               <label style={styles.label}>Middle Name</label>
-              <input style={styles.input} value={userData.middle_name} readOnly />
+              <input style={styles.input} value={userData.middle_name || ""} readOnly />
 
               <label style={styles.label}>Role</label>
-              <input style={styles.input} value="Project Manager" readOnly />
+              <input
+                style={styles.input}
+                value={roleMap[userData.user_roles] || "Unknown"}
+                readOnly
+              />
             </div>
 
             {/* Security Account */}
             <div style={styles.detailSection}>
               <h3 style={styles.subHeader}>Security Account</h3>
               <label style={styles.label}>ID NO</label>
-              <input style={styles.input} value={userData.id_no || ""} readOnly />
+              <input style={styles.input} value={userData.user_id} readOnly />
 
               <label style={styles.label}>Password</label>
-              <input
-                style={styles.input}
-                type="password"
-                value="password"
-                readOnly
-              />
-              <span style={styles.forgotLink}>Forgot Password</span>
-
-              <label style={styles.label}>Email</label>
-              <input style={styles.input} value={userData.email} readOnly />
+              <input style={styles.input} type="password" value="password" readOnly />
             </div>
           </div>
         </div>
@@ -155,13 +189,6 @@ const styles = {
     border: "1px solid #ccc",
     marginBottom: "6px",
     fontSize: "14px",
-  },
-  forgotLink: {
-    fontSize: "12px",
-    color: "#5a0d0e",
-    cursor: "pointer",
-    alignSelf: "flex-end",
-    marginBottom: "10px",
   },
   updateBtn: {
     backgroundColor: "#5a0d0e",

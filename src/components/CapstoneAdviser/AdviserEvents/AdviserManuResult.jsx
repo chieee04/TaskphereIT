@@ -3,6 +3,10 @@ import { supabase } from "../../../supabaseClient";
 import eventsIcon from "../../../assets/events-icon.png";
 import dueDateIcon from "../../../assets/due-date-icon.png";
 import timeIcon from "../../../assets/time-icon.png";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
 
 export default function AdviserManuResult() {
   const [schedules, setSchedules] = useState([]);
@@ -32,7 +36,9 @@ export default function AdviserManuResult() {
 
       const adviserId = storedUser.id;
 
-      const { data: accData } = await supabase.from("user_credentials").select("*");
+      const { data: accData } = await supabase
+        .from("user_credentials")
+        .select("*");
       setAccounts(accData || []);
 
       const { data: schedData, error } = await supabase
@@ -57,6 +63,122 @@ export default function AdviserManuResult() {
   const getName = (id) => {
     const person = accounts.find((a) => a.id === id);
     return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
+  };
+
+  // ✅ File Upload/Download/Remove (private bucket safe)
+  const handleFileClick = async (sched) => {
+    const { value: action } = await MySwal.fire({
+      title: "File Options",
+      text: sched.file_uploaded
+        ? `Current File: ${sched.file_uploaded}`
+        : "No file uploaded yet",
+      showCancelButton: true,
+      showDenyButton: !!sched.file_uploaded,
+      confirmButtonText: "Upload File",
+      denyButtonText: "Download",
+      cancelButtonText: sched.file_uploaded ? "Remove" : "Close",
+      reverseButtons: true,
+    });
+
+    if (action) {
+      if (action === true) {
+        // ✅ Upload File
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept =
+          "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+
+          // ✅ 1. Check file size (max 50MB)
+          if (file.size > 50 * 1024 * 1024) {
+            Swal.fire("Error", "File too large! Max 50MB.", "error");
+            return;
+          }
+
+          // ✅ 2. Sanitize filename
+          const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const filePath = `${sched.id}/${Date.now()}_${cleanName}`;
+          console.log("Uploading:", {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    path: filePath,
+  });
+
+          // Upload sa Supabase Storage
+          const { data, error: uploadError } = await supabase.storage
+  .from("manuscripts")
+  .upload(filePath, file, { upsert: true });
+
+if (uploadError) {
+  console.error("Upload error:", uploadError.message, uploadError);
+  Swal.fire("Error", "Upload failed!", "error");
+  return;
+} else {
+  console.log("Upload success:", data);
+}
+
+          // Save path only (not permanent URL)
+          await supabase
+            .from("user_manuscript_sched")
+            .update({
+              file_uploaded: cleanName,
+              file_path: filePath,
+            })
+            .eq("id", sched.id);
+
+          // Update local state
+          setSchedules((prev) =>
+            prev.map((s) =>
+              s.id === sched.id
+                ? {
+                    ...s,
+                    file_uploaded: cleanName,
+                    file_path: filePath,
+                  }
+                : s
+            )
+          );
+
+          Swal.fire("Success", "File uploaded successfully!", "success");
+        };
+        input.click();
+      } else if (action === false && sched.file_path) {
+        // ✅ Download using signed URL
+        const { data, error } = await supabase.storage
+          .from("manuscripts")
+          .createSignedUrl(sched.file_path, 60 * 60); // 1 hr expiry
+
+        if (error) {
+          Swal.fire("Error", "Failed to generate download link!", "error");
+          return;
+        }
+
+        window.open(data.signedUrl, "_blank");
+      }
+    } else if (sched.file_uploaded) {
+      // ✅ Remove file (from DB + Storage)
+      if (sched.file_path) {
+        await supabase.storage.from("manuscripts").remove([sched.file_path]);
+      }
+
+      await supabase
+        .from("user_manuscript_sched")
+        .update({ file_uploaded: null, file_path: null })
+        .eq("id", sched.id);
+
+      setSchedules((prev) =>
+        prev.map((s) =>
+          s.id === sched.id
+            ? { ...s, file_uploaded: null, file_path: null }
+            : s
+        )
+      );
+
+      Swal.fire("Removed", "File removed successfully!", "success");
+    }
   };
 
   // ✅ Update field both locally and in Supabase
@@ -104,9 +226,15 @@ export default function AdviserManuResult() {
                 <tr key={sched.id}>
                   <td>{idx + 1}.</td>
                   <td>{getName(sched.manager_id)}</td>
-                  <td className="wrap-text">{sched.project_title || "Untitled"}</td>
+                  <td className="wrap-text">
+                    {sched.project_title || "Untitled"}
+                  </td>
                   <td>
-                    <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
+                    <img
+                      src={dueDateIcon}
+                      alt="Due Date"
+                      className="inline-icon"
+                    />
                     {sched.date
                       ? new Date(sched.date).toLocaleDateString("en-US", {
                           month: "short",
@@ -116,7 +244,11 @@ export default function AdviserManuResult() {
                       : "N/A"}
                   </td>
                   <td>
-                    <img src={timeIcon} alt="Time" className="inline-icon" />
+                    <img
+                      src={timeIcon}
+                      alt="Time"
+                      className="inline-icon"
+                    />
                     {sched.time || "N/A"}
                   </td>
 
@@ -125,7 +257,11 @@ export default function AdviserManuResult() {
                     <select
                       value={sched.plagiarism}
                       onChange={(e) =>
-                        updateField(sched.id, "plagiarism", parseInt(e.target.value))
+                        updateField(
+                          sched.id,
+                          "plagiarism",
+                          parseInt(e.target.value)
+                        )
                       }
                     >
                       {PERCENTAGE_OPTIONS.map((opt) => (
@@ -152,9 +288,14 @@ export default function AdviserManuResult() {
                     </select>
                   </td>
 
-                  {/* File Upload */}
+                  {/* ✅ File Button */}
                   <td>
-                    <div className="upload-box">Upload</div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleFileClick(sched)}
+                    >
+                      {sched.file_uploaded ? sched.file_uploaded : "[File]"}
+                    </button>
                   </td>
 
                   {/* ✅ Revision Dropdown */}

@@ -2,15 +2,15 @@ import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../../../supabaseClient";
 import taskIcon from "../../../assets/tasks-icon.png";
 import createTasksIcon from "../../../assets/create-tasks-icon.png";
-import searchIcon from "../../../assets/search-icon.png";
-import filterIcon from "../../../assets/filter-icon.png";
-import exitIcon from "../../../assets/exit-icon.png";
 import dueDateIcon from "../../../assets/due-date-icon.png";
 import timeIcon from "../../../assets/time-icon.png";
-import redDropdownIcon from "../../../assets/red-dropdown-icon.png";
-import dropdownIconWhite from "../../../assets/dropdown-icon-white.png";
 import "../../Style/ProjectManager/ManagerTitleDefense.css";
 import { openCreateTask, openMethodology} from "../../../services/Manager/ManagerCreateTitleTask";
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
+
 
 
 const customUser = JSON.parse(localStorage.getItem("customUser"));
@@ -51,7 +51,7 @@ const ManagerTitleDefense = () => {
     return;
   }
 
-  const currentManagerId = storedUser.id; // 🟢 UUID ng naka-login na manager
+  const currentManagerId = storedUser.id;
   console.log("📌 Fetching tasks for Manager:", currentManagerId);
 
   const { data, error } = await supabase
@@ -70,7 +70,7 @@ const ManagerTitleDefense = () => {
       manager_id,
       member:user_credentials!manager_title_task_member_id_fkey(first_name, last_name)
     `)
-    .eq("manager_id", currentManagerId)   // 🔥 filter by manager_id
+    .eq("manager_id", currentManagerId)
     .order("created_date", { ascending: false });
 
   if (error) {
@@ -78,20 +78,20 @@ const ManagerTitleDefense = () => {
     return;
   }
 
-  // 🔹 Current date & time
-  const now = new Date();
-  const current_date = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  const current_time = now.toTimeString().split(" ")[0].slice(0, 5); // HH:mm
+  // 🔹 Helper para malaman kung Missed
+  const isMissed = (task) => {
+    if (!task.due_date || !task.due_time) return false;
+    const now = new Date();
+    const dueDateTime = new Date(`${task.due_date}T${task.due_time}`);
+    return now > dueDateTime && task.status !== "Completed";
+  };
 
-  // 🔹 Check overdue (Missed)
+  // 🔹 Update tasks kung Missed
   const updatedTasks = await Promise.all(
     data.map(async (task) => {
       if (task.status === "Completed") return task;
 
-      if (
-        task.due_date < current_date ||
-        (task.due_date === current_date && task.due_time && task.due_time <= current_time)
-      ) {
+      if (isMissed(task)) {
         const { error: updateError } = await supabase
           .from("manager_title_task")
           .update({ status: "Missed" })
@@ -109,6 +109,7 @@ const ManagerTitleDefense = () => {
       return task;
     })
   );
+
 
   setTasks(updatedTasks);
 };
@@ -136,7 +137,39 @@ const ManagerTitleDefense = () => {
   };
 
   // ✅ Update status
-  const handleStatusChange = async (taskId, newStatus) => {
+  // ✅ Update status with SweetAlert confirm for "Completed"
+const handleStatusChange = async (taskId, newStatus) => {
+  if (newStatus === "Completed") {
+    const result = await MySwal.fire({
+      title: "Mark as Completed?",
+      text: "Do you want to mark this task as completed?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, complete it",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return; // ❌ cancelled
+
+    // ✅ Get today's date only (YYYY-MM-DD)
+    const today = new Date().toISOString().split("T")[0];
+
+    const { error } = await supabase
+      .from("manager_title_task")
+      .update({ status: newStatus, date_completed: today })
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("❌ Update status error:", error);
+      MySwal.fire("Error", "Failed to update status.", "error");
+    } else {
+      // ✅ Remove from UI once completed
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+
+      MySwal.fire("✅ Completed!", "Task has been marked as completed.", "success");
+    }
+  } else {
+    // Normal update kapag hindi Completed
     const { error } = await supabase
       .from("manager_title_task")
       .update({ status: newStatus })
@@ -144,6 +177,7 @@ const ManagerTitleDefense = () => {
 
     if (error) {
       console.error("❌ Update status error:", error);
+      MySwal.fire("Error", "Failed to update status.", "error");
     } else {
       setTasks((prev) =>
         prev.map((t) =>
@@ -151,7 +185,9 @@ const ManagerTitleDefense = () => {
         )
       );
     }
-  };
+  }
+};
+
  
   return (
     <div className="page-wrapper">
