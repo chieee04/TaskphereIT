@@ -33,47 +33,46 @@ const ManagerTitleRecord = () => {
     }
   };
 
-  // ✅ Fetch tasks only for logged-in manager
-  // ✅ Fetch only Completed tasks for logged-in manager
-const fetchTasks = async () => {
-  const storedUser = JSON.parse(localStorage.getItem("customUser"));
-  if (!storedUser) {
-    console.error("❌ No customUser found in localStorage");
-    return;
-  }
+  // ✅ Fetch Completed tasks for logged-in manager
+  const fetchTasks = async () => {
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    if (!storedUser) {
+      console.error("❌ No customUser found in localStorage");
+      return;
+    }
 
-  const managerId = storedUser.id; // UUID ng logged-in manager
-  console.log("🟢 Logged-in Manager UUID:", managerId);
+    const managerId = storedUser.id;
+    console.log("🟢 Logged-in Manager UUID:", managerId);
 
-  const { data, error } = await supabase
-    .from("manager_title_task")
-    .select(
+    const { data, error } = await supabase
+      .from("manager_title_task")
+      .select(
+        `
+        id,
+        task_name,
+        due_date,
+        due_time,
+        created_date,
+        created_time,
+        date_completed,
+        methodology,
+        project_phase,
+        revision,
+        status,
+        manager_id,
+        member:user_credentials!manager_title_task_member_id_fkey(first_name, last_name)
       `
-      id,
-      task_name,
-      due_date,
-      due_time,
-      created_date,
-      created_time,
-      methodology,
-      project_phase,
-      revision,
-      status,
-      manager_id,
-      member:user_credentials!manager_title_task_member_id_fkey(first_name, last_name)
-    `
-    )
-    .eq("manager_id", managerId)   // 🔥 tasks for this manager only
-    .eq("status", "Completed");    // 🔥 only Completed
+      )
+      .eq("manager_id", managerId) // tasks for this manager only
+      .eq("status", "Completed"); // only Completed
 
-  if (error) {
-    console.error("❌ Fetch error:", error);
-  } else {
-    console.log("✅ Completed tasks fetched:", data);
-    setTasks(data);
-  }
-};
-
+    if (error) {
+      console.error("❌ Fetch error:", error);
+    } else {
+      console.log("✅ Completed tasks fetched:", data);
+      setTasks(data);
+    }
+  };
 
   useEffect(() => {
     fetchTasks();
@@ -131,6 +130,8 @@ const fetchTasks = async () => {
                 <th className="center-text">Date Created</th>
                 <th className="center-text">Due Date</th>
                 <th className="center-text">Time</th>
+                {/* 🟢 New Column */}
+                <th className="center-text">Date Completed</th>
                 <th className="center-text">Revision No.</th>
                 <th className="center-text">Status</th>
                 <th className="center-text">Methodology</th>
@@ -140,7 +141,7 @@ const fetchTasks = async () => {
             <tbody>
               {tasks.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="center-text">
+                  <td colSpan="11" className="center-text">
                     No tasks assigned to you yet
                   </td>
                 </tr>
@@ -164,6 +165,11 @@ const fetchTasks = async () => {
                     <td className="center-text">
                       <img src={timeIcon} alt="Time" className="inline-icon" />
                       {task.due_time}
+                    </td>
+
+                    {/* 🟢 Date Completed Display */}
+                    <td className="center-text">
+                      {task.date_completed || "-"}
                     </td>
 
                     {/* Revision Dropdown */}
@@ -204,6 +210,7 @@ const fetchTasks = async () => {
 
                     <td className="center-text">{task.methodology}</td>
                     <td className="center-text">{task.project_phase}</td>
+                    
                   </tr>
                 ))
               )}

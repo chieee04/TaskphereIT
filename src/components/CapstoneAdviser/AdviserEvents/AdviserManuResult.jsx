@@ -12,6 +12,7 @@ export default function AdviserManuResult() {
   const [schedules, setSchedules] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [customUser, setCustomUser] = useState(null);
+  
 
   const PERCENTAGE_OPTIONS = Array.from({ length: 21 }, (_, i) => i * 5); // 0–100
   const REVISION_OPTIONS = [
@@ -27,6 +28,20 @@ export default function AdviserManuResult() {
     { label: "9th Revision", value: 9 },
     { label: "10th Revision", value: 10 },
   ];
+  useEffect(() => {
+  const checkSession = async () => {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    console.log("🟢 Current session:", session);
+    if (error) console.error("❌ Auth error:", error);
+
+    if (!session) {
+      console.warn("⚠️ No active Supabase session! Uploads will fail.");
+    }
+  };
+
+  checkSession();
+}, []);
+
 
   useEffect(() => {
     const fetchData = async () => {

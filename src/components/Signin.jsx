@@ -72,7 +72,9 @@ const Signin = () => {
       login(user);
       localStorage.setItem("customUser", JSON.stringify(user)); // para sa sidebar
       setIsLoggedIn(true);
-await supabase.from("current_user").upsert([
+
+
+      await supabase.from("current_user").upsert([
   { id: true, user_id: user.id } // ✅ overwrite existing row
 ]);
 

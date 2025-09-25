@@ -1,46 +1,24 @@
 // src/components/tasks/pm-oral-record.jsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../../supabaseClient";
 import taskIcon from "../../../assets/tasks-icon.png";
-import searchIcon from "../../../assets/search-icon.png";
-import filterIcon from "../../../assets/filter-icon.png";
-import exitIcon from "../../../assets/exit-icon.png";
 import dueDateIcon from "../../../assets/due-date-icon.png";
 import timeIcon from "../../../assets/time-icon.png";
-import redDropdownIcon from "../../../assets/red-dropdown-icon.png";
-import dropdownIconWhite from "../../../assets/dropdown-icon-white.png";
-
-import "../../Style/ProjectManager/ManagerOralRecord.css"; // hiwalay na CSS file
+import "../../Style/ProjectManager/ManagerOralRecord.css";
 
 const ManagerOralRecord = () => {
-  const [status, setStatus] = useState("To Review");
-  const [revision, setRevision] = useState("1st Revision");
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [showRevisionDropdown, setShowRevisionDropdown] = useState(false);
-  const [filterCategory, setFilterCategory] = useState("Filter");
-  const [filterValue, setFilterValue] = useState("");
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [activeSubFilter, setActiveSubFilter] = useState(null);
-
-  const revisionRef = useRef(null);
-  const statusRef = useRef(null);
-  const filterRef = useRef(null);
+  const [tasks, setTasks] = useState([]);
 
   const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed"];
-  const REVISION_OPTIONS = [
-    "1st Revision",
-    "2nd Revision",
-    "3rd Revision",
-    "4th Revision",
-    "5th Revision",
-  ];
-  const PROJECT_PHASES = [
-    "Planning",
-    "Design",
-    "Development",
-    "Testing",
-    "Deployment",
-    "Review",
-  ];
+  const REVISION_OPTIONS = ["No Revision"].concat(
+    Array.from({ length: 10 }, (_, i) => {
+      const num = i + 1;
+      if (num === 1) return "1st Revision";
+      if (num === 2) return "2nd Revision";
+      if (num === 3) return "3rd Revision";
+      return `${num}th Revision`;
+    })
+  );
 
   const getStatusColor = (value) => {
     switch (value) {
@@ -57,105 +35,98 @@ const ManagerOralRecord = () => {
     }
   };
 
+  // ✅ Fetch Completed Oral Defense tasks
+  const fetchTasks = async () => {
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    if (!storedUser) {
+      console.error("❌ No customUser found in localStorage");
+      return;
+    }
+
+    const managerId = storedUser.id;
+
+    const { data, error } = await supabase
+      .from("manager_oral_task")
+      .select(
+        `
+        id,
+        subtask,
+        element,
+        due_date,
+        time,
+        status,
+        comment,
+        created_at,
+        revision,
+        date_completed,
+        methodology,
+        project_phase,
+        manager_id,
+        member:user_credentials!manager_oral_task_member_id_fkey(first_name, last_name)
+      `
+      )
+      .eq("manager_id", managerId)
+      .eq("status", "Completed")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ Fetch error:", error);
+    } else {
+      setTasks(data);
+    }
+  };
+
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (revisionRef.current && !revisionRef.current.contains(e.target)) {
-        setShowRevisionDropdown(false);
-      }
-      if (statusRef.current && !statusRef.current.contains(e.target)) {
-        setShowStatusDropdown(false);
-      }
-      if (filterRef.current && !filterRef.current.contains(e.target)) {
-        setShowFilterDropdown(false);
-        setActiveSubFilter(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    fetchTasks();
   }, []);
 
-  const handleClearFilter = (e) => {
-    e.stopPropagation();
-    setFilterCategory("Filter");
-    setFilterValue("");
-    setShowFilterDropdown(false);
-    setActiveSubFilter(null);
+  // ✅ Update status
+  const handleStatusChange = async (taskId, newStatus) => {
+    const { error } = await supabase
+      .from("manager_oral_task")
+      .update({ status: newStatus })
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("❌ Update status error:", error);
+    } else {
+      // refresh para mawala kung hindi na Completed
+      fetchTasks();
+    }
+  };
+
+  // ✅ Update revision
+  const handleRevisionChange = async (taskId, revisionIndex) => {
+    const revisionInt = revisionIndex; // 0 = No Revision, 1..10 = Revision number
+    const { error } = await supabase
+      .from("manager_oral_task")
+      .update({ revision: revisionInt })
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("❌ Update revision error:", error);
+    } else {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, revision: revisionInt } : t))
+      );
+    }
   };
 
   return (
     <div className="page-wrapper">
       <h2 className="section-title">
         <img src={taskIcon} alt="Tasks Icon" className="icon-image" />
-        Oral Defense
+        Oral Defense Records
       </h2>
       <hr className="divider" />
 
       <div className="header-wrapper">
         <div className="tasks-container">
-          <div className="search-filter-wrapper">
-            <div className="search-bar">
-              <img src={searchIcon} alt="Search" className="search-icon" />
-              <input type="text" placeholder="Search" className="search-input" />
-            </div>
-
-            <div className="filter-wrapper" ref={filterRef}>
-              <button
-                type="button"
-                className="filter-button"
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              >
-                <img src={filterIcon} alt="Filter" className="filter-icon" />
-                {filterValue || filterCategory}
-                {filterValue && (
-                  <img
-                    src={exitIcon}
-                    alt="Clear Filter"
-                    className="clear-icon"
-                    onClick={handleClearFilter}
-                  />
-                )}
-              </button>
-
-              {showFilterDropdown && (
-                <div className="dropdown-menu filter-dropdown-menu">
-                  {!activeSubFilter ? (
-                    <div
-                      className="dropdown-item"
-                      onClick={() => setActiveSubFilter("Project Phase")}
-                    >
-                      Project Phase
-                    </div>
-                  ) : (
-                    <>
-                      <div className="dropdown-title">{activeSubFilter}</div>
-                      <hr />
-                      {PROJECT_PHASES.map((opt) => (
-                        <div
-                          key={opt}
-                          className="dropdown-item"
-                          onClick={() => {
-                            setFilterValue(opt);
-                            setFilterCategory(activeSubFilter);
-                            setShowFilterDropdown(false);
-                            setActiveSubFilter(null);
-                          }}
-                        >
-                          {opt}
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
           <table className="tasks-table">
             <thead>
               <tr>
                 <th className="center-text">NO</th>
                 <th className="center-text">Assigned</th>
-                <th className="center-text">Tasks</th>
                 <th className="center-text">Subtasks</th>
                 <th className="center-text">Elements</th>
                 <th className="center-text">Date Created</th>
@@ -166,91 +137,84 @@ const ManagerOralRecord = () => {
                 <th className="center-text">Status</th>
                 <th className="center-text">Methodology</th>
                 <th className="center-text">Project Phase</th>
+                <th className="center-text">Comment</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="center-text">1.</td>
-                <td className="center-text">John Doe</td>
-                <td className="center-text">Oral Defense Task Example</td>
-                <td className="center-text">Prepare Slides</td>
-                <td className="center-text">Introduction, Q&amp;A</td>
-                <td className="center-text">Aug 20, 2025</td>
-                <td className="center-text">
-                  <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
-                  Aug 25, 2025
-                </td>
-                <td className="center-text">
-                  <img src={timeIcon} alt="Time" className="inline-icon" />
-                  2:00 PM
-                </td>
-                <td className="center-text">Aug 28, 2025</td>
-                <td className="center-text revision-cell" ref={revisionRef}>
-                  <div
-                    className="dropdown-wrapper"
-                    onClick={() => setShowRevisionDropdown(!showRevisionDropdown)}
-                  >
-                    <div className="revision-badge">
-                      {revision}
-                      <img
-                        src={redDropdownIcon}
-                        alt="▼"
-                        className="revision-dropdown-icon"
-                      />
-                    </div>
-                    {showRevisionDropdown && (
-                      <div className="dropdown-menu">
-                        {REVISION_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setRevision(opt);
-                              setShowRevisionDropdown(false);
-                            }}
-                          >
+              {tasks.length === 0 ? (
+                <tr>
+                  <td colSpan="13" className="center-text">
+                    No completed oral defense tasks yet
+                  </td>
+                </tr>
+              ) : (
+                tasks.map((task, idx) => (
+                  <tr key={task.id}>
+                    <td className="center-text">{idx + 1}.</td>
+                    <td className="center-text">
+                      {task.member?.first_name} {task.member?.last_name}
+                    </td>
+                    <td className="center-text">{task.subtask}</td>
+                    <td className="center-text">{task.element}</td>
+                    <td className="center-text">
+                      {new Date(task.created_at).toISOString().split("T")[0]}
+                    </td>
+                    <td className="center-text">
+                      <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
+                      {task.due_date}
+                    </td>
+                    <td className="center-text">
+                      <img src={timeIcon} alt="Time" className="inline-icon" />
+                      {task.time}
+                    </td>
+                    <td className="center-text">
+                      {task.date_completed
+                        ? new Date(task.date_completed).toISOString().split("T")[0]
+                        : "-"}
+                    </td>
+
+                    {/* Revision Dropdown */}
+                    <td className="center-text">
+                      <select
+                        value={task.revision ?? 0}
+                        onChange={(e) =>
+                          handleRevisionChange(task.id, parseInt(e.target.value))
+                        }
+                      >
+                        {REVISION_OPTIONS.map((opt, i) => (
+                          <option key={i} value={i}>
                             {opt}
-                          </div>
+                          </option>
                         ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text status-cell" ref={statusRef}>
-                  <div className="dropdown-wrapper">
-                    <div
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(status) }}
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    >
-                      {status}
-                      <img
-                        src={dropdownIconWhite}
-                        alt="▼"
-                        className="status-dropdown-icon"
-                      />
-                    </div>
-                    {showStatusDropdown && (
-                      <div className="dropdown-menu">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setStatus(opt);
-                              setShowStatusDropdown(false);
-                            }}
-                          >
-                            {opt}
-                          </div>
+                      </select>
+                    </td>
+
+                    {/* Status Dropdown */}
+                    <td className="center-text">
+                      <select
+                        value={task.status}
+                        style={{
+                          backgroundColor: getStatusColor(task.status),
+                          color: "#fff",
+                        }}
+                        onChange={(e) =>
+                          handleStatusChange(task.id, e.target.value)
+                        }
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
                         ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text">Qualitative</td>
-                <td className="center-text">Planning</td>
-              </tr>
+                      </select>
+                    </td>
+
+                    <td className="center-text">{task.methodology}</td>
+                    <td className="center-text">{task.project_phase}</td>
+                    <td className="center-text">{task.comment || "-"}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
