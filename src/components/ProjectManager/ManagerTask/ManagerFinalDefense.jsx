@@ -1,49 +1,32 @@
-// src/components/tasks/final-defense-tasks.jsx
-import React, { useState, useEffect, useRef } from "react";
-import "../../Style/ProjectManager/ManagerFinalDefense.css"; // <-- hiwalay na CSS file
+// src/components/tasks/ManagerFinalDefense.jsx
+import React, { useState, useEffect } from "react";
+import { supabase } from "../../../supabaseClient";
+import "../../Style/ProjectManager/ManagerFinalDefense.css";
 
 import taskIcon from "../../../assets/tasks-icon.png";
 import createTasksIcon from "../../../assets/create-tasks-icon.png";
-import searchIcon from "../../../assets/search-icon.png";
-import filterIcon from "../../../assets/filter-icon.png";
-import exitIcon from "../../../assets/exit-icon.png";
 import dueDateIcon from "../../../assets/due-date-icon.png";
 import timeIcon from "../../../assets/time-icon.png";
-import redDropdownIcon from "../../../assets/red-dropdown-icon.png";
-import dropdownIconWhite from "../../../assets/dropdown-icon-white.png";
+
+import Swal from "sweetalert2";
+import withReactContent from "sweetalert2-react-content";
+
+const MySwal = withReactContent(Swal);
+
+const customUser = JSON.parse(localStorage.getItem("customUser"));
+const managerId = customUser?.uuid || customUser?.id;
 
 const ManagerFinalDefense = () => {
-  const [status, setStatus] = useState("To Review");
-  const [revision, setRevision] = useState("1st Revision");
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [showRevisionDropdown, setShowRevisionDropdown] = useState(false);
-  const [filterCategory, setFilterCategory] = useState("Filter");
-  const [filterValue, setFilterValue] = useState("");
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [activeSubFilter, setActiveSubFilter] = useState(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  const statusRef = useRef(null);
-  const revisionRef = useRef(null);
-  const filterRef = useRef(null);
+  const [tasks, setTasks] = useState([]);
 
   const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed"];
-  const REVISION_OPTIONS = [
-    "1st Revision",
-    "2nd Revision",
-    "3rd Revision",
-    "4th Revision",
-    "5th Revision",
-  ];
-  const FILTER_STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Missed"];
-  const PROJECT_PHASES = [
-    "Planning",
-    "Design",
-    "Development",
-    "Testing",
-    "Deployment",
-    "Review",
-  ];
+  const REVISION_OPTIONS = Array.from({ length: 11 }, (_, i) => {
+    if (i === 0) return "No Revision";
+    if (i === 1) return "1st Revision";
+    if (i === 2) return "2nd Revision";
+    if (i === 3) return "3rd Revision";
+    return `${i}th Revision`;
+  });
 
   const getStatusColor = (value) => {
     switch (value) {
@@ -60,29 +43,122 @@ const ManagerFinalDefense = () => {
     }
   };
 
+  // ✅ Fetch Final Defense Tasks
+  const fetchTasks = async () => {
+    if (!managerId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("manager_final_task") // 🔹 assume separate table for Final Defense
+        .select(`
+          id,
+          task,
+          subtask,
+          element,
+          due_date,
+          time,
+          created_at,
+          methodology,
+          project_phase,
+          revision,
+          status,
+          task_type,
+          comment,
+          manager_id,
+          member:user_credentials!manager_final_task_member_id_fkey(first_name,last_name)
+        `)
+        .eq("manager_id", managerId)
+        .neq("status", "Completed")
+        .order("created_at", { ascending: false });
+
+      console.log("📌 Final Defense Data:", data, error);
+
+      if (error) {
+        console.error("❌ Fetch error:", error.message || error);
+        return;
+      }
+
+      setTasks(data || []);
+    } catch (err) {
+      console.error("❌ Unexpected fetch error:", err);
+    }
+  };
+
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (statusRef.current && !statusRef.current.contains(e.target)) {
-        setShowStatusDropdown(false);
-      }
-      if (revisionRef.current && !revisionRef.current.contains(e.target)) {
-        setShowRevisionDropdown(false);
-      }
-      if (filterRef.current && !filterRef.current.contains(e.target)) {
-        setShowFilterDropdown(false);
-        setActiveSubFilter(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    fetchTasks();
+    const interval = setInterval(fetchTasks, 60000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleClearFilter = (e) => {
-    e.stopPropagation();
-    setFilterCategory("Filter");
-    setFilterValue("");
-    setShowFilterDropdown(false);
-    setActiveSubFilter(null);
+  // ✅ Update Revision
+  const handleRevisionChange = async (taskId, revisionText) => {
+    const revisionInt = parseInt(revisionText);
+    const { error } = await supabase
+      .from("manager_final_task")
+      .update({ revision: revisionInt })
+      .eq("id", taskId);
+
+    if (error) {
+      console.error("❌ Update revision error:", error);
+    } else {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, revision: revisionInt } : t
+        )
+      );
+    }
+  };
+
+  // ✅ Update Status
+  const handleStatusChange = async (taskId, newStatus) => {
+    if (newStatus === "Completed") {
+      const result = await MySwal.fire({
+        title: "Is this task completed?",
+        text: "Once confirmed, this task will be marked as completed.",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Confirm",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!result.isConfirmed) return;
+
+      const today = new Date().toISOString().split("T")[0];
+
+      const { error } = await supabase
+        .from("manager_final_task")
+        .update({ status: newStatus, date_completed: today })
+        .eq("id", taskId);
+
+      if (error) {
+        console.error("❌ Update status error:", error);
+        MySwal.fire("Error", "Failed to update status.", "error");
+      } else {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+        MySwal.fire("Completed!", "Task has been marked as completed.", "success");
+      }
+    } else {
+      const { error } = await supabase
+        .from("manager_final_task")
+        .update({ status: newStatus })
+        .eq("id", taskId);
+
+      if (error) {
+        console.error("❌ Update status error:", error);
+        MySwal.fire("Error", "Failed to update status.", "error");
+      } else {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, status: newStatus } : t
+          )
+        );
+      }
+    }
+  };
+
+  // ✅ Create Task (dummy UI for now)
+  const handleCreateTask = async () => {
+    Swal.fire("Create Final Task", "UI only for now.", "info");
   };
 
   return (
@@ -97,7 +173,7 @@ const ManagerFinalDefense = () => {
         <button
           type="button"
           className="create-task-button"
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={handleCreateTask}
         >
           <img
             src={createTasksIcon}
@@ -108,79 +184,6 @@ const ManagerFinalDefense = () => {
         </button>
 
         <div className="tasks-container">
-          <div className="search-filter-wrapper">
-            <div className="search-bar">
-              <img src={searchIcon} alt="Search" className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search"
-                className="search-input"
-              />
-            </div>
-
-            <div className="filter-wrapper" ref={filterRef}>
-              <button
-                type="button"
-                className="filter-button"
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              >
-                <img src={filterIcon} alt="Filter" className="filter-icon" />
-                {filterValue || filterCategory}
-                {filterValue && (
-                  <img
-                    src={exitIcon}
-                    alt="Clear Filter"
-                    className="clear-icon"
-                    onClick={handleClearFilter}
-                  />
-                )}
-              </button>
-
-              {showFilterDropdown && (
-                <div className="dropdown-menu filter-dropdown-menu">
-                  {!activeSubFilter ? (
-                    <>
-                      <div
-                        className="dropdown-item"
-                        onClick={() => setActiveSubFilter("Status")}
-                      >
-                        Status
-                      </div>
-                      <div
-                        className="dropdown-item"
-                        onClick={() => setActiveSubFilter("Project Phase")}
-                      >
-                        Project Phase
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="dropdown-title">{activeSubFilter}</div>
-                      <hr />
-                      {(activeSubFilter === "Status"
-                        ? FILTER_STATUS_OPTIONS
-                        : PROJECT_PHASES
-                      ).map((opt) => (
-                        <div
-                          key={opt}
-                          className="dropdown-item"
-                          onClick={() => {
-                            setFilterValue(opt);
-                            setFilterCategory(activeSubFilter);
-                            setShowFilterDropdown(false);
-                            setActiveSubFilter(null);
-                          }}
-                        >
-                          {opt}
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
           <table className="tasks-table">
             <thead>
               <tr>
@@ -199,96 +202,81 @@ const ManagerFinalDefense = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="center-text">1.</td>
-                <td className="center-text">John Doe</td>
-                <td className="center-text">Oral Defense Task Example</td>
-                <td className="center-text">Prepare Slides</td>
-                <td className="center-text">Introduction, Q&A</td>
-                <td className="center-text">Aug 20, 2025</td>
-                <td className="center-text">
-                  <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
-                  Aug 25, 2025
-                </td>
-                <td className="center-text">
-                  <img src={timeIcon} alt="Time" className="inline-icon" />
-                  2:00 PM
-                </td>
-                <td className="center-text revision-cell" ref={revisionRef}>
-                  <div
-                    className="dropdown-wrapper"
-                    onClick={() => setShowRevisionDropdown(!showRevisionDropdown)}
-                  >
-                    <div className="revision-badge">
-                      {revision}
-                      <img
-                        src={redDropdownIcon}
-                        alt="▼"
-                        className="revision-dropdown-icon"
-                      />
-                    </div>
-                    {showRevisionDropdown && (
-                      <div className="dropdown-menu">
-                        {REVISION_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setRevision(opt);
-                              setShowRevisionDropdown(false);
-                            }}
-                          >
-                            {opt}
-                          </div>
+              {tasks.length === 0 ? (
+                <tr>
+                  <td colSpan="12" className="center-text">No tasks yet</td>
+                </tr>
+              ) : (
+                tasks.map((task, idx) => (
+                  <tr key={task.id}>
+                    <td className="center-text">{idx + 1}.</td>
+                    <td className="center-text">
+                      {task.member?.first_name} {task.member?.last_name}
+                    </td>
+                    <td className="center-text">{task.task}</td>
+                    <td className="center-text">{task.subtask}</td>
+                    <td className="center-text">{task.element}</td>
+                    <td className="center-text">{task.created_at}</td>
+                    <td className="center-text">
+                      <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
+                      {task.due_date}
+                    </td>
+                    <td className="center-text">
+                      <img src={timeIcon} alt="Time" className="inline-icon" />
+                      {task.time}
+                    </td>
+
+                    {/* Revision Dropdown */}
+                    <td className="center-text">
+                      <select
+                        value={task.revision}
+                        onChange={(e) =>
+                          handleRevisionChange(task.id, e.target.value)
+                        }
+                      >
+                        {REVISION_OPTIONS.map((label, i) => (
+                          <option key={i} value={i}>{label}</option>
                         ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text status-cell" ref={statusRef}>
-                  <div className="dropdown-wrapper">
-                    <div
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(status) }}
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    >
-                      {status}
-                      <img
-                        src={dropdownIconWhite}
-                        alt="▼"
-                        className="status-dropdown-icon"
-                      />
-                    </div>
-                    {showStatusDropdown && (
-                      <div className="dropdown-menu">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setStatus(opt);
-                              setShowStatusDropdown(false);
-                            }}
-                          >
-                            {opt}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text">Qualitative</td>
-                <td className="center-text">Planning</td>
-              </tr>
+                      </select>
+                    </td>
+
+                    {/* Status Dropdown */}
+                    <td className="center-text">
+                      {task.status === "Missed" ? (
+                        <span style={{
+                          backgroundColor: "red",
+                          color: "#fff",
+                          padding: "2px 8px",
+                          borderRadius: "5px",
+                          fontWeight: "600",
+                        }}>
+                          {task.status}
+                        </span>
+                      ) : (
+                        <select
+                          style={{
+                            backgroundColor: getStatusColor(task.status),
+                            color: "#fff",
+                            padding: "2px 5px",
+                            borderRadius: "5px",
+                          }}
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+
+                    <td className="center-text">{task.methodology}</td>
+                    <td className="center-text">{task.project_phase}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-
-          {isCreateModalOpen && (
-            <FinalCreateTasks
-              onClose={() => setIsCreateModalOpen(false)}
-              onCreate={handleCreate}
-            />
-          )}
         </div>
       </div>
     </div>

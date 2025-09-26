@@ -14,18 +14,18 @@ const buildOptions = (arr) =>
 export const openCreateOralDefTask = async () => {
   // Step 1: Kunin ang uuid ng kasalukuyang naka-login na user mula sa localStorage
   const customUser = JSON.parse(localStorage.getItem("customUser"));
-  const managerUUID = customUser?.uuid;
+const managerUUID = customUser?.uuid || customUser?.id;
 
-  if (!managerUUID) {
-    Swal.fire("Error", "No signed-in user found.", "error");
-    return;
-  }
+if (!managerUUID) {
+  Swal.fire("Error", "No signed-in user found.", "error");
+  return;
+}
 
   // Step 2: Kunin ang group_number ng manager mula sa user_credentials gamit uuid
   const { data: managerData, error: mgrErr } = await supabase
     .from("user_credentials")
     .select("group_number")
-    .eq("uuid", managerUUID)   // 🔹 base sa uuid na naka-save
+    .eq("id", managerUUID)   // 🔹 base sa uuid na naka-save
     .single();
 
   if (mgrErr || !managerData) {

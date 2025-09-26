@@ -13,6 +13,7 @@ import ManagerTaskBoard from "./ManagerTaskBoard/ManagerTaskBoard";
 import ManagerEvents from "./ManagerEvents";
 import Profile from "../Profile";
 import ManagerOralRecord from "./ManagerTaskRecord/ManagerOralRecord";
+import ManagerFinalDefense from "./ManagerTask/ManagerFinalDefense";
 
 const ManagerDashboard = ({ activePageFromHeader }) => {
   const location = useLocation();
@@ -40,6 +41,8 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
         return <ManagerTitleDefense />;
       case "Oral Defense":
         return <ManagerOralDefense />;
+        case "Final Defense":
+        return <ManagerFinalDefense />;
       case "Tasks Record":
         return <ManagerTaskRecord setActivePage={setActivePage} />;
       case "Title Defense Record":
