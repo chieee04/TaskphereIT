@@ -10,24 +10,22 @@ const buildOptions = (arr) =>
   [`<option value="" disabled selected hidden></option>`, ...arr.map((m) => `<option value="${m}">${m}</option>`)].join("");
 
 // 🟢 Main Function
+// 🟢 Main Function
 export const openCreateOralDefTask = async () => {
-  // Step 1: Kunin ang UUID ng kasalukuyang naka-login na user mula sa current_user
-  const { data: current, error: curErr } = await supabase
-    .from("current_user")
-    .select("user_id")
-    .single();
+  // Step 1: Kunin ang uuid ng kasalukuyang naka-login na user mula sa localStorage
+  const customUser = JSON.parse(localStorage.getItem("customUser"));
+  const managerUUID = customUser?.uuid;
 
-  if (curErr || !current) {
+  if (!managerUUID) {
     Swal.fire("Error", "No signed-in user found.", "error");
     return;
   }
-  const managerUUID = current.user_id;
 
-  // Step 2: Kunin ang group_number ng manager mula sa user_credentials
+  // Step 2: Kunin ang group_number ng manager mula sa user_credentials gamit uuid
   const { data: managerData, error: mgrErr } = await supabase
     .from("user_credentials")
     .select("group_number")
-    .eq("id", managerUUID)
+    .eq("uuid", managerUUID)   // 🔹 base sa uuid na naka-save
     .single();
 
   if (mgrErr || !managerData) {
@@ -35,6 +33,7 @@ export const openCreateOralDefTask = async () => {
     return;
   }
   const groupNumber = managerData.group_number;
+
 
   // Step 3: Check kung may methodology record
   const { data: rows, error: methErr } = await supabase

@@ -1,6 +1,5 @@
-// src/components/ManagerProfile.jsx
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient"; // make sure this is correct
+import { supabase } from "../supabaseClient";
 import { FaUserCircle } from "react-icons/fa";
 
 const Profile = () => {
@@ -10,29 +9,28 @@ const Profile = () => {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        // 1️⃣ Get the currently signed-in user_id from current_user table
-        const { data: current, error: currentError } = await supabase
-          .from("current_user")
-          .select("user_id")
-          .single();
+        // 1️⃣ Kunin yung data ng signed-in user sa localStorage
+        const customUser = JSON.parse(localStorage.getItem("customUser"));
+        const userId = customUser?.id; // PK (uuid style)
+        const userNameId = customUser?.user_id; // ID number (like "adviser")
 
-        if (currentError || !current) {
-          console.error("❌ Error fetching current user:", currentError);
+        console.log("🔍 Loaded from localStorage:", { userId, userNameId, customUser });
+
+        if (!userId) {
+          console.error("❌ Walang userId sa localStorage");
           setLoading(false);
           return;
         }
 
-        const userId = current.user_id;
-
-        // 2️⃣ Fetch user info from user_credentials
-        const { data: user, error: userError } = await supabase
+        // 2️⃣ Fetch full user info from user_credentials
+        const { data: user, error } = await supabase
           .from("user_credentials")
           .select("user_id, first_name, last_name, middle_name, user_roles")
-          .eq("id", userId)
+          .eq("id", userId) // match by uuid/PK
           .single();
 
-        if (userError || !user) {
-          console.error("❌ Error fetching user info:", userError);
+        if (error || !user) {
+          console.error("❌ Error fetching user info:", error);
           setLoading(false);
           return;
         }
@@ -88,7 +86,11 @@ const Profile = () => {
               <input style={styles.input} value={userData.first_name} readOnly />
 
               <label style={styles.label}>Middle Name</label>
-              <input style={styles.input} value={userData.middle_name || ""} readOnly />
+              <input
+                style={styles.input}
+                value={userData.middle_name || ""}
+                readOnly
+              />
 
               <label style={styles.label}>Role</label>
               <input
@@ -105,7 +107,12 @@ const Profile = () => {
               <input style={styles.input} value={userData.user_id} readOnly />
 
               <label style={styles.label}>Password</label>
-              <input style={styles.input} type="password" value="password" readOnly />
+              <input
+                style={styles.input}
+                type="password"
+                value="password"
+                readOnly
+              />
             </div>
           </div>
         </div>

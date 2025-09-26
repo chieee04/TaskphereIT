@@ -1,70 +1,70 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom"; // ✅ idagdag ito
 import Sidebar from "../Sidebar";
 import AdviserTeamSummary from "./AdviserTeamsSummary";
-// Sa Task ito ng side bar.
 import AdviserTask from "./AdviserTask/AdviserTask";
 import AdviserOralDef from "./AdviserTask/AdviserOralDef";
 import AdviserFinalDef from "./AdviserTask/AdviserFinalDef";
-// Team board
 import AdviserTaskRecord from "./TaskRecord/AdviserTaskRecord";
-// Task Record 
 import AdviserTeamBoard from "./AdviserBoard/AdviserTeamBoard";
 import AdviserOralRecord from "./TaskRecord/AdviserOralRecord";
 import AdviserFinalRecord from "./TaskRecord/AdviserFinalRecord";
-//Events
 import AdviserEvents from "./AdviserEvents/AdviserEvents";
 import AdviserManuResult from "./AdviserEvents/AdviserManuResult";
 import AdviserCapsDefenses from "./AdviserEvents/AdviserCapsDefenses";
+import Profile from "../Profile";
 
-const AdviserDashboard = () => {
+const AdviserDashboard = ({ activePageFromHeader }) => {
+  const location = useLocation();
 
-  const [activePage, setActivePage] = useState("Dashboard");
+  // ✅ kunin yung galing sa navigate state
+  const [activePage, setActivePage] = useState(
+    location.state?.activePage || activePageFromHeader || "Dashboard"
+  );
+
+  useEffect(() => {
+    if (location.state?.activePage) {
+      setActivePage(location.state.activePage);
+    }
+  }, [location.state]);
 
   const renderContent = () => {
     switch (activePage) {
-      
-        case "Teams Summary":
-        return <AdviserTeamSummary/>;
-
-        case "Tasks":
-        return <AdviserTask setActivePage={setActivePage}/>;
+      case "Teams Summary":
+        return <AdviserTeamSummary />;
+      case "Tasks":
+        return <AdviserTask setActivePage={setActivePage} />;
       case "Oral Defense":
         return <AdviserOralDef />;
-        case "Final Defense":
+      case "Final Defense":
         return <AdviserFinalDef />;
-        
       case "Teams Board":
         return <AdviserTeamBoard />;
-
       case "Tasks Record":
         return <AdviserTaskRecord setActivePage={setActivePage} />;
-        case "Oral Defense Record":
+      case "Oral Defense Record":
         return <AdviserOralRecord />;
       case "Title Defense Record":
         return <AdviserFinalRecord />;
-
       case "Events":
-        return <AdviserEvents setActivePage={setActivePage}/>;
+        return <AdviserEvents setActivePage={setActivePage} />;
       case "Manucript Results":
         return <AdviserManuResult />;
       case "Capstone Defenses":
         return <AdviserCapsDefenses />;
+      case "Profile":
+        return <Profile />;
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
     }
   };
+
   return (
     <div className="d-flex">
       <Sidebar activeItem={activePage} onSelect={setActivePage} />
-      <div className="flex-grow-1 p-3">
-        {renderContent()}
-      </div>
+      <div className="flex-grow-1 p-3">{renderContent()}</div>
     </div>
   );
 };
 
 export default AdviserDashboard;
-// AdviserDashboard.jsx
-
-
-

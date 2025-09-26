@@ -15,7 +15,8 @@ import withReactContent from "sweetalert2-react-content";
 const MySwal = withReactContent(Swal);
 
 const customUser = JSON.parse(localStorage.getItem("customUser"));
-const managerId = customUser?.id;
+const managerId = customUser?.uuid; // 🔹 gamitin na ang uuid
+
 
 const ManagerOralDefense = () => {
   const [tasks, setTasks] = useState([]);
@@ -46,8 +47,15 @@ const ManagerOralDefense = () => {
 
   // ✅ Fetch Oral Defense Tasks from Supabase
   const fetchTasks = async () => {
-    if (!managerId) return;
+  const customUser = JSON.parse(localStorage.getItem("customUser"));
+  const managerId = customUser?.id; // adjust kung iba yung PK column mo
 
+  if (!managerId) {
+    console.warn("⚠️ Walang managerId sa customUser:", customUser);
+    return;
+  }
+
+  try {
     const { data, error } = await supabase
       .from("manager_oral_task")
       .select(`
@@ -71,13 +79,27 @@ const ManagerOralDefense = () => {
       .neq("status", "Completed")
       .order("created_at", { ascending: false });
 
+    console.log("📌 DEBUG FETCH RESULT =====================");
+    console.log("Manager ID:", managerId);
+    console.log("customUser:", customUser);
+    console.log("Raw Data:", data);
+    console.log("Error:", error);
+    console.log("==========================================");
+
     if (error) {
-      console.error("❌ Fetch error:", error);
+      console.error("❌ Supabase fetch error:", error.message || error);
       return;
     }
 
-    setTasks(data);
-  };
+    if (!data || data.length === 0) {
+      console.warn("⚠️ Walang tasks nakuha para sa manager:", managerId);
+    }
+
+    setTasks(data || []);
+  } catch (err) {
+    console.error("❌ Unexpected fetch error:", err);
+  }
+};
 
   useEffect(() => {
   // unang fetch para may data agad
@@ -110,7 +132,6 @@ const ManagerOralDefense = () => {
       );
     }
   };
-
   // ✅ Update Status
   // ✅ Update Status
 const handleStatusChange = async (taskId, newStatus) => {
@@ -166,7 +187,9 @@ const handleStatusChange = async (taskId, newStatus) => {
 
   // ✅ Handle Create Task (refresh tasks after creation)
   const handleCreateTask = async () => {
-  const newTasks = await openCreateOralDefTask(managerId);
+  // ✅ Pass managerId (uuid) directly
+const newTasks = await openCreateOralDefTask(managerId);
+
 
   if (newTasks && Array.isArray(newTasks)) {
     // Append new tasks to current state

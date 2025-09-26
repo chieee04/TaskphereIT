@@ -1,5 +1,6 @@
+// src/Contex/AuthContext.js
 import { createContext, useContext, useState, useEffect } from "react";
-import { supabase } from '../supabaseClient';
+import { supabase } from "../supabaseClient";
 
 const AuthContext = createContext();
 
@@ -7,30 +8,30 @@ export const AuthContextProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // 🔹 Check localStorage user (for custom accounts from your table)
-    const storedUser = localStorage.getItem("user");
+    // 🔹 Check kung may naka-save na custom user (manager/member/adviser)
+    const storedUser = localStorage.getItem("customUser");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
 
-    // 🔹 Check Supabase Auth session (for admin or email-based login)
+    // 🔹 Check Supabase Auth session (pang Admin lang)
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        setUser(session.user); // Supabase user
+        setUser(session.user);
       }
     };
     getSession();
 
-    // 🔹 Listen for login/logout changes in Supabase
+    // 🔹 Listen sa Supabase Auth changes (para sa Admin lang)
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         if (session?.user) {
           setUser(session.user);
-          localStorage.setItem("user", JSON.stringify(session.user)); // Save to localStorage too
+          localStorage.setItem("adminUser", JSON.stringify(session.user));
         } else {
           setUser(null);
-          localStorage.removeItem("user");
+          localStorage.removeItem("adminUser");
         }
       }
     );
@@ -40,19 +41,16 @@ export const AuthContextProvider = ({ children }) => {
     };
   }, []);
 
-  // 🔹 Custom login for local users (not Supabase)
+  // 🔹 Custom login for Manager/Member/Adviser
   const login = (userData) => {
     setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("customUser", JSON.stringify(userData));
   };
 
   const logout = async () => {
     setUser(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("customUser");
-  localStorage.removeItem("adminUser");
-  await supabase.from("current_user").delete().neq("id", 0);
-    await supabase.auth.signOut(); // 🔹 Log out from Supabase too
+    localStorage.clear(); // linisin lahat ng localStorage keys
+    await supabase.auth.signOut(); // Admin logout kung naka-Supabase
   };
 
   return (
