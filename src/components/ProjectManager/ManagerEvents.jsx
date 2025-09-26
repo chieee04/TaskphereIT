@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import fileIcon from "../../assets/file-type-icon.png";
 import "bootstrap/dist/css/bootstrap.min.css"; // ✅ import bootstrap
+import Swal from "sweetalert2"; // ✅ import sa taas
 
 const ManagerEvents = () => {
   const [titleDef, setTitleDef] = useState(null);
@@ -101,19 +102,43 @@ const ManagerEvents = () => {
                   {manuscript.ai || 0}%
                 </td>
                 <td>
-                  {manuscript.file_uploaded ? (
-                    <>
-                      <img
-                        src={fileIcon}
-                        alt="File Icon"
-                        style={{ width: "20px", height: "20px" }}
-                      />{" "}
-                      {manuscript.file_uploaded}
-                    </>
-                  ) : (
-                    "No File"
-                  )}
-                </td>
+  {manuscript.file_url ? (
+    <button
+      className="btn btn-sm btn-outline-primary"
+      onClick={() => {
+        Swal.fire({
+          title: "Download File?",
+          text: `Do you want to download "${manuscript.file_uploaded}"?`,
+          icon: "question",
+          showCancelButton: true,
+          confirmButtonText: "Yes, Download",
+          cancelButtonText: "Cancel",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            const { data } = supabase.storage
+              .from("manuscripts")
+              .getPublicUrl(manuscript.file_url);
+
+            if (data?.publicUrl) {
+              window.open(data.publicUrl, "_blank");
+            } else {
+              Swal.fire("Error", "File not found in storage.", "error");
+            }
+          }
+        });
+      }}
+    >
+      <img
+        src={fileIcon}
+        alt="File Icon"
+        style={{ width: "20px", height: "20px", marginRight: "5px" }}
+      />
+      {manuscript.file_uploaded}
+    </button>
+  ) : (
+    "No File"
+  )}
+</td>
                 <td>{getName(manuscript.adviser_id)}</td>
                 <td>
                   <span className="text-success fw-bold">

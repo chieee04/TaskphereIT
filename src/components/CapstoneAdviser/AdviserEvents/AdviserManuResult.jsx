@@ -12,9 +12,8 @@ export default function AdviserManuResult() {
   const [schedules, setSchedules] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [customUser, setCustomUser] = useState(null);
-  
 
-  const PERCENTAGE_OPTIONS = Array.from({ length: 21 }, (_, i) => i * 5); // 0–100
+  const PERCENTAGE_OPTIONS = Array.from({ length: 21 }, (_, i) => i * 5);
   const REVISION_OPTIONS = [
     { label: "No Revision", value: 0 },
     { label: "1st Revision", value: 1 },
@@ -28,20 +27,6 @@ export default function AdviserManuResult() {
     { label: "9th Revision", value: 9 },
     { label: "10th Revision", value: 10 },
   ];
-  useEffect(() => {
-  const checkSession = async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    console.log("🟢 Current session:", session);
-    if (error) console.error("❌ Auth error:", error);
-
-    if (!session) {
-      console.warn("⚠️ No active Supabase session! Uploads will fail.");
-    }
-  };
-
-  checkSession();
-}, []);
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,8 +65,13 @@ export default function AdviserManuResult() {
     return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
   };
 
-  // ✅ File Upload/Download/Remove (private bucket safe)
+  // ✅ File Upload/Download/Remove
   const handleFileClick = async (sched) => {
+    if (!customUser) return;
+
+    // Adviser lang (role 3) ang pwede mag upload
+    const canUpload = customUser.user_roles === 3;
+
     const { value: action } = await MySwal.fire({
       title: "File Options",
       text: sched.file_uploaded
@@ -95,118 +85,106 @@ export default function AdviserManuResult() {
       reverseButtons: true,
     });
 
-    if (action) {
-      if (action === true) {
-        // ✅ Upload File
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept =
-          "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
-        input.onchange = async (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
+    // ✅ Upload
+    if (action && canUpload) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept =
+        "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain";
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
 
-          // ✅ 1. Check file size (max 50MB)
-          if (file.size > 50 * 1024 * 1024) {
-            Swal.fire("Error", "File too large! Max 50MB.", "error");
-            return;
-          }
+        if (file.size > 50 * 1024 * 1024) {
+          Swal.fire("Error", "File too large! Max 50MB.", "error");
+          return;
+        }
 
-          // ✅ 2. Sanitize filename
-          const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-          const filePath = `${sched.id}/${Date.now()}_${cleanName}`;
-          console.log("Uploading:", {
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    path: filePath,
-  });
+        const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const filePath = `${sched.id}/${Date.now()}_${cleanName}`; // ✅ relative path
 
-          // Upload sa Supabase Storage
-          const { data, error: uploadError } = await supabase.storage
-  .from("manuscripts")
-  .upload(filePath, file, { upsert: true });
+        try {
+          // Upload file to bucket
+          const { error: uploadError } = await supabase.storage
+            .from("manuscripts")
+            .upload(filePath, file, { cacheControl: "3600", upsert: false });
 
-if (uploadError) {
-  console.error("Upload error:", uploadError.message, uploadError);
-  Swal.fire("Error", "Upload failed!", "error");
-  return;
-} else {
-  console.log("Upload success:", data);
-}
+          if (uploadError) throw uploadError;
 
-          // Save path only (not permanent URL)
+          // Save relative path to DB
           await supabase
             .from("user_manuscript_sched")
             .update({
               file_uploaded: cleanName,
-              file_path: filePath,
+              file_url: filePath,
             })
             .eq("id", sched.id);
 
-          // Update local state
+          // Update UI state
           setSchedules((prev) =>
             prev.map((s) =>
               s.id === sched.id
-                ? {
-                    ...s,
-                    file_uploaded: cleanName,
-                    file_path: filePath,
-                  }
+                ? { ...s, file_uploaded: cleanName, file_url: filePath }
                 : s
             )
           );
 
           Swal.fire("Success", "File uploaded successfully!", "success");
-        };
-        input.click();
-      } else if (action === false && sched.file_path) {
-        // ✅ Download using signed URL
-        const { data, error } = await supabase.storage
-          .from("manuscripts")
-          .createSignedUrl(sched.file_path, 60 * 60); // 1 hr expiry
+        } catch (err) {
+          console.error("Upload error:", err);
+          Swal.fire("Error", "Upload failed!", "error");
+        }
+      };
+      input.click();
+    }
 
-        if (error) {
-          Swal.fire("Error", "Failed to generate download link!", "error");
-          return;
+    // ✅ Download
+    else if (action === false && sched.file_url) {
+      const { data: publicUrlData } = supabase.storage
+        .from("manuscripts")
+        .getPublicUrl(sched.file_url);
+
+      window.open(publicUrlData.publicUrl, "_blank");
+    }
+
+    // ✅ Remove
+    else if (!action && sched.file_uploaded) {
+      try {
+        if (sched.file_url) {
+          const { error: removeError } = await supabase.storage
+            .from("manuscripts")
+            .remove([sched.file_url]); // ✅ full relative path
+
+          if (removeError) throw removeError;
         }
 
-        window.open(data.signedUrl, "_blank");
+        await supabase
+          .from("user_manuscript_sched")
+          .update({ file_uploaded: null, file_url: null })
+          .eq("id", sched.id);
+
+        setSchedules((prev) =>
+          prev.map((s) =>
+            s.id === sched.id ? { ...s, file_uploaded: null, file_url: null } : s
+          )
+        );
+
+        Swal.fire("Removed", "File removed successfully!", "success");
+      } catch (err) {
+        console.error("Remove error:", err);
+        Swal.fire("Error", "Failed to remove file.", "error");
       }
-    } else if (sched.file_uploaded) {
-      // ✅ Remove file (from DB + Storage)
-      if (sched.file_path) {
-        await supabase.storage.from("manuscripts").remove([sched.file_path]);
-      }
-
-      await supabase
-        .from("user_manuscript_sched")
-        .update({ file_uploaded: null, file_path: null })
-        .eq("id", sched.id);
-
-      setSchedules((prev) =>
-        prev.map((s) =>
-          s.id === sched.id
-            ? { ...s, file_uploaded: null, file_path: null }
-            : s
-        )
-      );
-
-      Swal.fire("Removed", "File removed successfully!", "success");
     }
   };
 
-  // ✅ Update field both locally and in Supabase
   const updateField = async (rowId, field, value) => {
     setSchedules((prev) =>
       prev.map((s) => (s.id === rowId ? { ...s, [field]: value } : s))
     );
-
     const { error } = await supabase
       .from("user_manuscript_sched")
       .update({ [field]: value })
       .eq("id", rowId);
-
     if (error) {
       console.error(`Error updating ${field}:`, error.message);
     }
@@ -259,15 +237,9 @@ if (uploadError) {
                       : "N/A"}
                   </td>
                   <td>
-                    <img
-                      src={timeIcon}
-                      alt="Time"
-                      className="inline-icon"
-                    />
+                    <img src={timeIcon} alt="Time" className="inline-icon" />
                     {sched.time || "N/A"}
                   </td>
-
-                  {/* ✅ Plagiarism Dropdown */}
                   <td>
                     <select
                       value={sched.plagiarism}
@@ -286,8 +258,6 @@ if (uploadError) {
                       ))}
                     </select>
                   </td>
-
-                  {/* ✅ AI Dropdown */}
                   <td>
                     <select
                       value={sched.ai}
@@ -302,8 +272,6 @@ if (uploadError) {
                       ))}
                     </select>
                   </td>
-
-                  {/* ✅ File Button */}
                   <td>
                     <button
                       className="btn btn-primary btn-sm"
@@ -312,8 +280,6 @@ if (uploadError) {
                       {sched.file_uploaded ? sched.file_uploaded : "[File]"}
                     </button>
                   </td>
-
-                  {/* ✅ Revision Dropdown */}
                   <td>
                     <select
                       value={sched.status}
@@ -332,7 +298,10 @@ if (uploadError) {
               ))
             ) : (
               <tr>
-                <td colSpan="9" style={{ textAlign: "center", padding: "20px" }}>
+                <td
+                  colSpan="9"
+                  style={{ textAlign: "center", padding: "20px" }}
+                >
                   No schedules found for you as adviser.
                 </td>
               </tr>
