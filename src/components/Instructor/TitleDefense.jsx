@@ -763,7 +763,7 @@ const TitleDefense = () => {
                                                         className="w-full flex items-center px-4 py-2 text-sm text-gray-700 bg-white hover:bg-white"
                                                     >
                                                         <FaPen className="mr-2" /> Update
-                                                    </button>
+                                                    </button> 
                                                     <button
                                                         onClick={() => {
                                                             handleDelete(sched.id);
