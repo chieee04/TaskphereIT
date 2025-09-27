@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { FaUserCircle } from "react-icons/fa";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const Profile = () => {
   const [userData, setUserData] = useState(null);
@@ -9,25 +10,31 @@ const Profile = () => {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        // 1️⃣ Kunin yung data ng signed-in user sa localStorage
+        // 🔍 Step 1: Load from localStorage
         const customUser = JSON.parse(localStorage.getItem("customUser"));
-        const userId = customUser?.id; // PK (uuid style)
-        const userNameId = customUser?.user_id; // ID number (like "adviser")
+        console.log("🔍 Loaded from localStorage:", customUser);
 
-        console.log("🔍 Loaded from localStorage:", { userId, userNameId, customUser });
+        const userId = customUser?.id; // UUID (PK sa user_credentials)
+        const userNameId = customUser?.user_id; // Unique ID like "adviser"
 
-        if (!userId) {
-          console.error("❌ Walang userId sa localStorage");
+        if (!userId && !userNameId) {
+          console.error("❌ Walang valid user sa localStorage");
           setLoading(false);
           return;
         }
 
-        // 2️⃣ Fetch full user info from user_credentials
-        const { data: user, error } = await supabase
+        // 🔍 Step 2: Fetch from Supabase
+        let query = supabase
           .from("user_credentials")
-          .select("user_id, first_name, last_name, middle_name, user_roles")
-          .eq("id", userId) // match by uuid/PK
-          .single();
+          .select("user_id, first_name, last_name, middle_name, user_roles, email");
+
+        if (userId) {
+          query = query.eq("id", userId); // Try matching by PK
+        } else if (userNameId) {
+          query = query.eq("user_id", userNameId); // Fallback to user_id
+        }
+
+        const { data: user, error } = await query.single();
 
         if (error || !user) {
           console.error("❌ Error fetching user info:", error);
@@ -35,6 +42,7 @@ const Profile = () => {
           return;
         }
 
+        console.log("✅ User fetched:", user);
         setUserData(user);
       } catch (err) {
         console.error("❌ Unexpected error:", err);
@@ -46,8 +54,8 @@ const Profile = () => {
     fetchCurrentUser();
   }, []);
 
-  if (loading) return <p style={{ textAlign: "center" }}>Loading profile...</p>;
-  if (!userData) return <p style={{ textAlign: "center" }}>User not found</p>;
+  if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading profile...</p>;
+  if (!userData) return <p style={{ textAlign: "center", marginTop: "50px" }}>User not found</p>;
 
   const roleMap = {
     1: "Project Manager",
@@ -56,155 +64,223 @@ const Profile = () => {
   };
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <FaUserCircle style={{ marginRight: "8px" }} />
-        <span style={styles.headerText}>Profile</span>
-      </div>
+    <div className="container my-4">
+      <style>
+        {`
+          .profile-container {
+            font-family: Arial, sans-serif;
+            color: #333;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .profile-header {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: black;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #5a0d0e;
+            margin-bottom: 20px;
+          }
+          .profile-main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+          }
+          .profile-top-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+          }
+          .profile-picture-wrapper {
+            width: 25%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .update-button-wrapper {
+            width: 75%;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+          }
+          .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+          }
+          .profile-image-box {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid #5a0d0e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 20px;
+          }
+          .profile-image-box svg {
+            color: #5a0d0e;
+            width: 80px;
+            height: 80px;
+          }
+          .details-sections-wrapper {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            width: 100%;
+          }
+          .details-column {
+            display: flex;
+            flex-direction: column;
+            width: 48%;
+          }
+          .details-column h3 {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ccc;
+          }
+          .form-group {
+            margin-bottom: 15px;
+          }
+          .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 5px;
+          }
+          .form-control {
+            width: 80%;
+            max-width: 300px;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: white;
+          }
+          .form-control:read-only {
+            background-color: white;
+            cursor: not-allowed;
+          }
+          .forgot-password-link-container {
+            width: 80%;
+            max-width: 300px;
+            display: flex;
+            justify-content: flex-end;
+          }
+          .forgot-password-link {
+            font-size: 0.8rem;
+            color: #5a0d0e;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 5px;
+          }
+          .update-btn {
+            background-color: #5a0d0e;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+          }
+          .update-btn:hover {
+            background-color: #3b0304;
+          }
+        `}
+      </style>
 
-      {/* Profile Section */}
-      <div style={styles.profileWrapper}>
-        {/* Left: Profile Picture */}
-        <div style={styles.leftSection}>
-          <p style={styles.sectionTitle}>Profile Picture</p>
-          <div style={styles.pictureBox}>
-            <FaUserCircle size={80} color="#333" />
-          </div>
+      <div className="profile-container">
+        {/* Profile Header */}
+        <div className="profile-header">
+          <FaUserCircle className="me-2" style={{ color: "black" }} />
+          <span>Profile</span>
         </div>
 
-        {/* Right: Details */}
-        <div style={styles.rightSection}>
-          <div style={styles.detailsWrapper}>
-            {/* Personal Details */}
-            <div style={styles.detailSection}>
-              <h3 style={styles.subHeader}>Personal Details</h3>
-              <label style={styles.label}>Last Name</label>
-              <input style={styles.input} value={userData.last_name} readOnly />
-
-              <label style={styles.label}>First Name</label>
-              <input style={styles.input} value={userData.first_name} readOnly />
-
-              <label style={styles.label}>Middle Name</label>
-              <input
-                style={styles.input}
-                value={userData.middle_name || ""}
-                readOnly
-              />
-
-              <label style={styles.label}>Role</label>
-              <input
-                style={styles.input}
-                value={roleMap[userData.user_roles] || "Unknown"}
-                readOnly
-              />
+        {/* Main Content Area */}
+        <div className="profile-main-content">
+          <div className="profile-top-row">
+            {/* Left Section: Profile Picture */}
+            <div className="profile-picture-wrapper">
+              <h3 className="section-title">Profile Picture</h3>
+              <div className="profile-image-box">
+                <FaUserCircle />
+              </div>
             </div>
 
-            {/* Security Account */}
-            <div style={styles.detailSection}>
-              <h3 style={styles.subHeader}>Security Account</h3>
-              <label style={styles.label}>ID NO</label>
-              <input style={styles.input} value={userData.user_id} readOnly />
+            {/* Right Side: Update Profile Button */}
+            <div className="update-button-wrapper">
+              <button className="update-btn d-flex align-items-center">
+                <FaUserCircle className="me-2" />
+                Update Profile
+              </button>
+            </div>
+          </div>
 
-              <label style={styles.label}>Password</label>
-              <input
-                style={styles.input}
-                type="password"
-                value="password"
-                readOnly
-              />
+          {/* Details Section */}
+          <div className="details-sections-wrapper">
+            {/* Personal Details Column */}
+            <div className="details-column">
+              <h3 className="section-title">Personal Details</h3>
+              <div className="form-group">
+                <label>Last Name</label>
+                <input type="text" className="form-control" value={userData.last_name} readOnly />
+              </div>
+              <div className="form-group">
+                <label>First Name</label>
+                <input type="text" className="form-control" value={userData.first_name} readOnly />
+              </div>
+              <div className="form-group">
+                <label>Middle Name</label>
+                <input type="text" className="form-control" value={userData.middle_name || ""} readOnly />
+              </div>
+              <div className="form-group">
+                <label>Role</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={roleMap[userData.user_roles] || "Unknown"}
+                  readOnly
+                />
+              </div>
+            </div>
+
+            {/* Security Account Column */}
+            <div className="details-column">
+              <h3 className="section-title">Security Account</h3>
+              <div className="form-group">
+                <label>ID NO</label>
+                <input type="text" className="form-control" value={userData.user_id} readOnly />
+              </div>
+              <div className="form-group">
+                <label>Password</label>
+                <input type="password" className="form-control" value="********" readOnly />
+                <div className="forgot-password-link-container">
+                  <a href="#" className="forgot-password-link">Forgot Password</a>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input type="email" className="form-control" value={userData.email} readOnly />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Update Button */}
-      <div style={{ textAlign: "right", marginTop: "10px" }}>
-        <button style={styles.updateBtn}>Update Profile</button>
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    padding: "20px",
-    fontFamily: "Arial, sans-serif",
-    color: "#333",
-  },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    fontSize: "18px",
-    fontWeight: "600",
-    borderBottom: "2px solid #5a0d0e",
-    paddingBottom: "8px",
-    marginBottom: "15px",
-  },
-  headerText: {
-    fontSize: "18px",
-    fontWeight: "600",
-  },
-  profileWrapper: {
-    display: "flex",
-    gap: "30px",
-  },
-  leftSection: {
-    width: "25%",
-  },
-  rightSection: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontWeight: "600",
-    marginBottom: "10px",
-  },
-  pictureBox: {
-    border: "2px solid #ccc",
-    borderRadius: "8px",
-    width: "120px",
-    height: "120px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: "10px",
-  },
-  detailsWrapper: {
-    display: "flex",
-    justifyContent: "space-between",
-    borderTop: "2px solid #ccc",
-    paddingTop: "10px",
-  },
-  detailSection: {
-    width: "45%",
-    display: "flex",
-    flexDirection: "column",
-  },
-  subHeader: {
-    fontSize: "16px",
-    fontWeight: "600",
-    marginBottom: "10px",
-  },
-  label: {
-    fontSize: "14px",
-    marginBottom: "4px",
-    marginTop: "8px",
-  },
-  input: {
-    padding: "6px",
-    borderRadius: "4px",
-    border: "1px solid #ccc",
-    marginBottom: "6px",
-    fontSize: "14px",
-  },
-  updateBtn: {
-    backgroundColor: "#5a0d0e",
-    color: "white",
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
-  },
 };
 
 export default Profile;

@@ -168,6 +168,7 @@ export default function AdviserManuResult() {
             s.id === sched.id ? { ...s, file_uploaded: null, file_url: null } : s
           )
         );
+console.log("Removing file:", sched.file_url);
 
         Swal.fire("Removed", "File removed successfully!", "success");
       } catch (err) {
