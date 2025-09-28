@@ -35,12 +35,10 @@ const Teams = () => {
   const fetchAccounts = async () => {
     const { data, error } = await supabase.from('user_credentials').select('*');
     if (!error) {
-      // Create a set of all group numbers that are part of an adviser group
       const adviserGroupedTeamNumbers = new Set(
         data.filter(member => member.adviser_group !== null && member.group_number !== null).map(member => member.group_number)
       );
  
-      // Group users by their group number for regular teams, excluding those with an adviser
       const groupedTeams = data.reduce((acc, member) => {
         if (member.group_number !== null && !adviserGroupedTeamNumbers.has(member.group_number)) {
           if (!acc[member.group_number]) {
@@ -54,7 +52,6 @@ const Teams = () => {
         return acc;
       }, {});
  
-      // Group users by their adviser group
       const adviserGroups = data.reduce((acc, member) => {
         if (member.adviser_group !== null) {
           if (!acc[member.adviser_group]) {
@@ -72,7 +69,6 @@ const Teams = () => {
         return acc;
       }, {});
  
-      // Create team cards for ungrouped teams
       const teamCardsFromGroups = Object.values(groupedTeams).map(group => {
         const manager = group.members.find(m => m.user_roles === 1);
         const label = `${manager?.last_name || 'Team'}, Et Al`;
@@ -83,7 +79,6 @@ const Teams = () => {
         };
       });
  
-      // Create adviser cards
       const adviserCards = Object.values(adviserGroups).map(group => {
         const adviser = group.adviser;
         const adviserLabel = adviser
@@ -115,20 +110,17 @@ const Teams = () => {
       allAccountsRef.current = data;
     }
   };
- 
- 
+
   const handleUpdateRole = async (memberId, newRole) => {
     try {
       const newRoleId = newRole === 'Project Manager' ? 1 : 2;
  
-      // Optimistic UI update
       setSelectedTeam(prevTeam => {
         if (!prevTeam) return prevTeam;
         const updatedMembers = prevTeam.members.map(m => {
           if (m.id === memberId) {
             return { ...m, user_roles: newRoleId };
           } else if (m.user_roles === 1) {
-            // Demote the current manager if a new one is selected
             return { ...m, user_roles: 2 };
           }
           return m;
@@ -144,7 +136,6 @@ const Teams = () => {
         };
       });
  
-      // Update the database
       await supabase
         .from('user_credentials')
         .update({ user_roles: 2 })
@@ -159,8 +150,6 @@ const Teams = () => {
       if (error) {
         throw error;
       }
- 
-      // Re-fetch to ensure sync after a brief delay
       setTimeout(fetchAccounts, 500);
  
     } catch (err) {
@@ -347,14 +336,12 @@ const Teams = () => {
             const moreBtn = card.querySelector('.more-btn');
             const menu = card.querySelector('.card-menu');
  
-            // Handle showing/hiding menu
             moreBtn.addEventListener('click', (e) => {
               e.stopPropagation();
               document.querySelectorAll('.card-menu').forEach(m => m.style.display = 'none');
               menu.style.display = 'flex';
             });
  
-            // Handle card click to show team details
             card.addEventListener('click', (e) => {
               if (e.target.closest('.more-btn') || e.target.closest('.card-menu')) return;
               const innerTeamNumber = card.getAttribute('data-team-number');
@@ -373,7 +360,6 @@ const Teams = () => {
               MySwal.close();
             });
  
-            // Handle delete button
             card.querySelector('.menu-delete-btn').addEventListener('click', (e) => {
               e.stopPropagation();
               const teamNumber = e.currentTarget.getAttribute('data-team-number');
@@ -383,7 +369,6 @@ const Teams = () => {
               handleDeleteFolder(targetTeam);
             });
  
-            // Handle transfer button
             card.querySelector('.menu-transfer-btn').addEventListener('click', (e) => {
               e.stopPropagation();
               const teamNumber = e.currentTarget.getAttribute('data-team-number');
@@ -394,7 +379,6 @@ const Teams = () => {
             });
           });
  
-          // Hide all menus when clicking outside
           document.addEventListener('click', (e) => {
             if (!e.target.closest('.card-menu') && !e.target.closest('.more-btn')) {
               document.querySelectorAll('.card-menu').forEach(m => m.style.display = 'none');
@@ -426,7 +410,6 @@ const Teams = () => {
     unassignedStudents.forEach(student => {
       options[student.id] = `${student.last_name}, ${student.first_name} ${student.middle_name || ''}`;
     });
- 
     MySwal.fire({
       title: 'Add Member',
       input: 'select',
@@ -466,25 +449,21 @@ const Teams = () => {
             'error'
           );
           console.error('Error adding member:', error);
-          fetchAccounts(); // Fallback to re-sync state
+          fetchAccounts();
         }
       }
     });
   };
- 
   const handleCreateTeam = () => {
     if (Manager.length === 0) {
       MySwal.fire("No available Manager", "All Manager are already assigned to groups.", "info");
       return;
     }
- 
     if (students.length === 0) {
       MySwal.fire("No available students", "All students are already assigned to groups.", "info");
       return;
     }
- 
     let selectedMembers = [];
- 
     MySwal.fire({
       title: `<div style="color: #3B0304; font-weight: 600; display: flex; align-items: center; gap: 8px;">
         <i class="bi bi-plus-circle"></i> Create Team</div>`,
@@ -633,7 +612,7 @@ const Teams = () => {
       cancelButtonText: 'Cancel',
       confirmButtonColor: '#3B0304',
       cancelButtonColor: '#999',
-      width: '600px', // Set width here
+      width: '600px', 
       didOpen: () => {
         const teamSelect = Swal.getPopup().querySelector('#teamSelect');
         const listDiv = Swal.getPopup().querySelector('#selectedTeamList');
@@ -705,7 +684,6 @@ const Teams = () => {
       }
     });
   };
- 
   const handleCardMenuToggle = (index) => {
     setActiveMenu((prev) => (prev === index ? null : index));
   };
@@ -726,7 +704,6 @@ const Teams = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          // Optimistic UI update
           setSelectedTeam(prevTeam => ({
             ...prevTeam,
             members: prevTeam.members.filter(m => m.id !== memberId)
@@ -750,12 +727,12 @@ const Teams = () => {
             'error'
           );
           console.error('Error deleting member:', error);
-          fetchAccounts(); // Fallback to re-sync state
+          fetchAccounts();
         }
       }
     });
   };
- 
+
   const handleTransferMember = async (memberId) => {
     const { data: teams, error } = await supabase
       .from('user_credentials')
@@ -791,7 +768,7 @@ const Teams = () => {
       inputPlaceholder: 'Select a new team',
       showCancelButton: true,
       confirmButtonText: 'Transfer',
-      width: '600px', // Set width here
+      width: '600px', 
       inputValidator: (value) => {
         if (!value) {
           return 'You need to select a team!';
@@ -811,8 +788,7 @@ const Teams = () => {
           if (error) {
             throw error;
           }
- 
-          // Optimistic UI update
+
           const memberToTransfer = selectedTeam.members.find(m => m.id === memberId);
           setSelectedTeam(prevTeam => ({
             ...prevTeam,
@@ -828,7 +804,7 @@ const Teams = () => {
             'error'
           );
           console.error('Error transferring member:', error);
-          fetchAccounts(); // Fallback to re-sync state
+          fetchAccounts(); 
         }
       }
     });
@@ -852,7 +828,7 @@ const Teams = () => {
       cancelButtonText: 'Cancel',
       confirmButtonColor: '#3B0304',
       cancelButtonColor: '#999',
-      width: '600px', // Set width here
+      width: '600px', 
       preConfirm: () => {
         const newAdviserId = Swal.getPopup().querySelector('#transferAdviserSelect').value;
         if (!newAdviserId) {
@@ -1148,5 +1124,4 @@ const Teams = () => {
     </div>
   ); 
 };
- 
 export default Teams;

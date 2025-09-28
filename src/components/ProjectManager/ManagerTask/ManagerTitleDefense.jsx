@@ -618,6 +618,7 @@ const ManagerTitleDefense = () => {
                     {isSelectionMode ? `Delete Selected` : 'Delete'}
                 </button>
                 
+                
                 {/* Filter Dropdown (White background, reduced width) */}
                 <div className="filter-wrapper">
                     <span className="filter-content">

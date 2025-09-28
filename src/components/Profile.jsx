@@ -7,52 +7,73 @@ const Profile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        // 🔍 Step 1: Load from localStorage
-        const customUser = JSON.parse(localStorage.getItem("customUser"));
-        console.log("🔍 Loaded from localStorage:", customUser);
+useEffect(() => {
+  const fetchCurrentUser = async () => {
+    try {
+      const customUser = JSON.parse(localStorage.getItem("customUser"));
+      console.log("🔍 Loaded from localStorage:", customUser);
 
-        const userId = customUser?.id; // UUID (PK sa user_credentials)
-        const userNameId = customUser?.user_id; // Unique ID like "adviser"
+      const userId = customUser?.id;          // Supabase UID
+      const userNameId = customUser?.user_id; // for Manager/Adviser/Member
+      const hasRole = !!customUser?.user_roles;
 
-        if (!userId && !userNameId) {
-          console.error("❌ Walang valid user sa localStorage");
-          setLoading(false);
-          return;
-        }
+      if (!userId && !userNameId) {
+        console.error("❌ Walang valid user sa localStorage");
+        setLoading(false);
+        return;
+      }
 
-        // 🔍 Step 2: Fetch from Supabase
+      let user = null;
+
+      if (hasRole) {
+        // 👉 Manager / Member / Adviser → fetch from user_credentials
         let query = supabase
           .from("user_credentials")
           .select("user_id, first_name, last_name, middle_name, user_roles");
 
-        if (userId) {
-          query = query.eq("id", userId); // Try matching by PK
-        } else if (userNameId) {
-          query = query.eq("user_id", userNameId); // Fallback to user_id
+        if (userNameId) {
+          query = query.eq("user_id", userNameId);
+        } else if (userId) {
+          query = query.eq("id", userId);
         }
 
-        const { data: user, error } = await query.single();
-
-        if (error || !user) {
+        const { data, error } = await query.single();
+        if (error || !data) {
           console.error("❌ Error fetching user info:", error);
           setLoading(false);
           return;
         }
-
-        console.log("✅ User fetched:", user);
-        setUserData(user);
-      } catch (err) {
-        console.error("❌ Unexpected error:", err);
-      } finally {
-        setLoading(false);
+        user = data;
+      } else {
+        // 👉 Instructor → fetch from Supabase Auth
+        const { data: authUser, error } = await supabase.auth.getUser();
+        if (error || !authUser?.user) {
+          console.error("❌ Error fetching instructor from auth:", error);
+          setLoading(false);
+          return;
+        }
+        user = { 
+          user_id: authUser.user.email, 
+          email: authUser.user.email, 
+          user_roles: 4 
+        };
       }
-    };
 
-    fetchCurrentUser();
-  }, []);
+      console.log("✅ User fetched:", user);
+      setUserData(user);
+    } catch (err) {
+      console.error("❌ Unexpected error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchCurrentUser();
+}, []);
+
+
+  
+  
 
   if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>Loading profile...</p>;
   if (!userData) return <p style={{ textAlign: "center", marginTop: "50px" }}>User not found</p>;
@@ -61,6 +82,7 @@ const Profile = () => {
     1: "Project Manager",
     2: "Member",
     3: "Adviser",
+    4: "IT Instructor"
   };
 
   return (

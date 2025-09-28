@@ -1,14 +1,20 @@
+// ManagerDashboard.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "../Sidebar";
-import { Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
   Title,
   Tooltip,
   Legend,
+  Filler,
   ArcElement
 } from "chart.js";
+import { Line, Pie } from "react-chartjs-2";
 
 // Pages
 import Tasks from "./ManagerTask/ManagerTask";
@@ -25,25 +31,62 @@ import ManagerTaskBoard from "./ManagerTaskBoard/ManagerTaskBoard";
 import ManagerEvents from "./ManagerEvents";
 import Profile from "../Profile";
 import ManagerAllocation from "./ManagerTask/ManagerAllocation";
-
-// Import the new CSS file
-import "../Style/ProjectManager/ManagerDB.css";
-import { supabase } from "../../supabaseClient";
 import ManagerFinalRecord from "./ManagerTaskRecord/ManagerFinalRecord";
 
+// Import CSS
+import "../Style/ProjectManager/ManagerDB.css";
+import { supabase } from "../../supabaseClient";
+
+// Constants
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
+const WEEK_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-const getDaysInMonth = (year, month) => {
-  return new Date(year, month + 1, 0).getDate();
-};
-ChartJS.register(Title, Tooltip, Legend, ArcElement);
+// ChartJS registration
+ChartJS.register(
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+  ArcElement
+);
 
-const getFirstDayOfMonth = (year, month) => {
-  return new Date(year, month, 1).getDay();
-};
+// Helper functions for Chart.js line chart
+function getLineColor(ctx) {
+  const colors = {
+    "To Do": "#FABC3F",
+    "In Progress": "#809D3C",
+    "To Review": "#578FCA",
+    "Completed": "#4BC0C0",
+    "Missed": "#FF6384",
+  };
+  return colors[ctx.dataset.label] || "#000000";
+}
+
+function makeHalfAsOpaque(ctx) {
+  const color = getLineColor(ctx);
+  return color + "80"; // 50% opacity
+}
+
+function adjustRadiusBasedOnData(ctx) {
+  const v = ctx.parsed.y;
+  return v < 10 ? 5
+    : v < 25 ? 7
+    : v < 50 ? 9
+    : v < 75 ? 11
+    : 15;
+}
+
+// Date helpers
+const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
+
 const TeamProgressChart = () => {
   const [statusCounts, setStatusCounts] = useState({
     "To Do": 0,
@@ -56,24 +99,16 @@ const TeamProgressChart = () => {
   useEffect(() => {
     const fetchTaskStatusCounts = async () => {
       const storedUser = localStorage.getItem("customUser");
-      if (!storedUser) {
-        console.warn("⚠️ No logged-in user found in localStorage");
-        return;
-      }
-
+      if (!storedUser) return;
       const currentUser = JSON.parse(storedUser);
 
-      // ✅ Kunin ang buong user record para makuha yung `id`
       const { data: userData, error: userError } = await supabase
         .from("user_credentials")
         .select("id, user_id")
         .eq("user_id", currentUser.user_id)
         .single();
 
-      if (userError || !userData?.id) {
-        console.error("❌ Error fetching user:", userError);
-        return;
-      }
+      if (userError || !userData?.id) return;
 
       const managerId = userData.id;
       let allData = [];
@@ -84,16 +119,9 @@ const TeamProgressChart = () => {
           .from(table)
           .select("status")
           .eq("manager_id", managerId);
-
-        if (error) {
-          console.error(`❌ Error fetching tasks from ${table}:`, error);
-          continue;
-        }
-
         if (data) allData = [...allData, ...data];
       }
 
-      // ✅ Count tasks per status
       const counts = {
         "To Do": 0,
         "In Progress": 0,
@@ -102,11 +130,9 @@ const TeamProgressChart = () => {
         "Missed": 0,
       };
 
-      allData.forEach((task) => {
+      allData.forEach(task => {
         const status = task.status?.trim() || "To Do";
-        if (counts[status] !== undefined) {
-          counts[status]++;
-        }
+        if (counts[status] !== undefined) counts[status]++;
       });
 
       setStatusCounts(counts);
@@ -127,24 +153,14 @@ const TeamProgressChart = () => {
           statusCounts["Missed"],
         ],
         backgroundColor: [
-          "#FABC3F", // To Do
-          "#809D3C", // In Progress
-          "#578FCA", // To Review
-          "#4BC0C0", // Completed
-          "#FF6384", // Missed
+          "#FABC3F", "#809D3C", "#578FCA", "#4BC0C0", "#FF6384",
         ],
         borderWidth: 1,
       },
     ],
   };
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { position: "bottom" },
-      title: { display: false },
-    },
-  };
+  const options = { responsive: true, plugins: { legend: { position: "bottom" }, title: { display: false } } };
 
   return (
     <div style={{ width: "220px", height: "220px", margin: "0 auto" }}>
@@ -153,10 +169,8 @@ const TeamProgressChart = () => {
   );
 };
 
-
 const ManagerDashboard = ({ activePageFromHeader }) => {
   const location = useLocation();
-
   const [currentDate, setCurrentDate] = useState(new Date(2025, 0, 1));
   const [activePage, setActivePage] = useState(
     location.state?.activePage || activePageFromHeader || "Dashboard"
@@ -164,184 +178,161 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
   const [upcomingTasks, setUpcomingTasks] = useState([]);
 
   useEffect(() => {
-    if (location.state?.activePage) {
-      setActivePage(location.state.activePage);
-    }
+    if (location.state?.activePage) setActivePage(location.state.activePage);
   }, [location.state]);
 
-  // 🔹 Fetch Upcoming Tasks
- useEffect(() => {
-  const fetchUpcomingTasks = async () => {
-    const storedUser = localStorage.getItem("customUser");
-    if (!storedUser) {
-      console.warn("No user in localStorage");
-      return;
-    }
+  // Fetch Upcoming Tasks
+  useEffect(() => {
+    const fetchUpcomingTasks = async () => {
+      const storedUser = localStorage.getItem("customUser");
+      if (!storedUser) return;
+      const currentUser = JSON.parse(storedUser);
+      const managerUUID = currentUser.uuid || currentUser.id;
+      if (!managerUUID) return;
 
-    const currentUser = JSON.parse(storedUser);
-    const managerUUID = currentUser.uuid || currentUser.id;
-    if (!managerUUID) {
-      console.warn("Manager UUID/ID not found in localStorage", currentUser);
-      return;
-    }
-    let allData = [];
+      let allData = [];
+      const tables = [
+        {
+          name: "manager_title_task",
+          select: "id, task_name, due_date, due_time, member_id, status",
+          mapTask: t => t.task_name,
+          mapTime: t => t.due_time
+        },
+        {
+          name: "manager_oral_task",
+          select: "id, task, due_date, time, member_id, status",
+          mapTask: t => t.task,
+          mapTime: t => t.time
+        },
+        {
+          name: "manager_final_task",
+          select: "id, task, due_date, time, member_id, status",
+          mapTask: t => t.task,
+          mapTime: t => t.time
+        }
+      ];
 
-    // define table-specific selects
-    const tables = [
-      {
-        name: "manager_title_task",
-        select: "id, task_name, due_date, due_time, member_id, status",
-        mapTask: (t) => t.task_name,
-        mapTime: (t) => t.due_time
-      },
-      {
-        name: "manager_oral_task",
-        select: "id, task, due_date, time, member_id, status",
-        mapTask: (t) => t.task,
-        mapTime: (t) => t.time
-      },
-      {
-        name: "manager_final_task",
-        select: "id, task, due_date, time, member_id, status",
-        mapTask: (t) => t.task,
-        mapTime: (t) => t.time
-      }
-    ];
-
-    for (const table of tables) {
-      const { data, error } = await supabase
-        .from(table.name)
-        .select(table.select)
-        .eq("manager_id", managerUUID);
-
-      if (error) {
-        console.error(`Error fetching from ${table.name}:`, error);
-        continue;
+      for (const table of tables) {
+        const { data, error } = await supabase.from(table.name).select(table.select).eq("manager_id", managerUUID);
+        if (data) {
+          const standardized = data.map(t => ({
+            id: t.id,
+            task: table.mapTask(t),
+            due_date: t.due_date,
+            time: table.mapTime(t) || "00:00",
+            member_id: t.member_id,
+            status: t.status
+          }));
+          allData = [...allData, ...standardized];
+        }
       }
 
-      if (data) {
-        const standardized = data.map((t) => ({
-          id: t.id,
-          task: table.mapTask(t),
-          due_date: t.due_date,
-          time: table.mapTime(t) || "00:00",
-          member_id: t.member_id,
-          status: t.status
-        }));
-        allData = [...allData, ...standardized];
-      }
-    }
+      const today = new Date();
+      const upcoming = allData
+        .filter(task => task.due_date && !["Completed", "Missed"].includes(task.status))
+        .map(task => ({ ...task, dueDateObj: new Date(task.due_date + " " + task.time) }))
+        .filter(task => task.dueDateObj >= today)
+        .sort((a, b) => a.dueDateObj - b.dueDateObj)
+        .slice(0, 5);
 
-    const today = new Date();
-    const upcoming = allData
-      .filter((task) => task.due_date && !["Completed", "Missed"].includes(task.status))
-      .map((task) => ({
-        ...task,
-        dueDateObj: new Date(task.due_date + " " + task.time)
-      }))
-      .filter((task) => task.dueDateObj >= today)
-      .sort((a, b) => a.dueDateObj - b.dueDateObj)
-      .slice(0, 5);
-
-    const withNames = await Promise.all(
-      upcoming.map(async (task) => {
+      const withNames = await Promise.all(upcoming.map(async task => {
         if (!task.member_id) return { ...task, memberName: "No Member" };
-
-        const { data: member, error: memberError } = await supabase
+        const { data: member } = await supabase
           .from("user_credentials")
           .select("first_name, last_name")
           .eq("id", task.member_id)
           .single();
+        return { ...task, memberName: member ? `${member.first_name} ${member.last_name}` : "Unknown" };
+      }));
 
-        if (memberError || !member) {
-          return { ...task, memberName: "Unknown" };
-        }
+      setUpcomingTasks(withNames);
+    };
 
-        return {
-          ...task,
-          memberName: `${member.first_name} ${member.last_name}`
-        };
-      })
-    );
+    fetchUpcomingTasks();
+  }, []);
 
-    setUpcomingTasks(withNames);
-  };
-
-  fetchUpcomingTasks();
-}, []);
-
-
+  // Calendar helpers
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   const daysInMonth = getDaysInMonth(year, month);
   const firstDay = getFirstDayOfMonth(year, month);
-
   const isJan2025 = year === 2025 && month === 0;
-  const activeDays = {
-    filled: [8, 11, 15],
-    bordered: [5, 17]
-  };
+  const activeDays = { filled: [8, 11, 15], bordered: [5, 17] };
 
   const handleMonthChange = (e) => {
     const [newMonthIndex, newYear] = e.target.value.split("-").map(Number);
     setCurrentDate(new Date(newYear, newMonthIndex));
   };
-
-  const handleNav = (direction) => {
-    const newMonth = month + direction;
-    setCurrentDate(new Date(year, newMonth, 1));
-  };
+  const handleNav = (direction) => setCurrentDate(new Date(year, month + direction, 1));
 
   const calendarGrid = useMemo(() => {
     const totalCells = 42;
     const days = [];
-
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
-
+    for (let i = 0; i < firstDay; i++) days.push(null);
     for (let day = 1; day <= daysInMonth; day++) {
       let type = "normal";
       if (isJan2025) {
-        if (activeDays.filled.includes(day)) {
-          type = "filled";
-        } else if (activeDays.bordered.includes(day)) {
-          type = "bordered";
-        }
+        if (activeDays.filled.includes(day)) type = "filled";
+        else if (activeDays.bordered.includes(day)) type = "bordered";
       }
       days.push({ day, type });
     }
-
-    while (days.length % 7 !== 0 && days.length < totalCells) {
-      days.push(null);
-    }
-
+    while (days.length % 7 !== 0 && days.length < totalCells) days.push(null);
     const grid = [];
-    for (let i = 0; i < days.length; i += 7) {
-      grid.push(days.slice(i, i + 7));
-    }
-
+    for (let i = 0; i < days.length; i += 7) grid.push(days.slice(i, i + 7));
     return grid;
-
   }, [year, month, daysInMonth, firstDay, isJan2025]);
 
   const CalendarDay = ({ data }) => {
     if (!data) return <td></td>;
-
     let className = "";
-    if (data.type === "filled") {
-      className = "primary-active-day";
-    } else if (data.type === "bordered") {
-      className = "secondary-active-day";
-    }
-
-    return (
-      <td>
-        <span className={className}>{data.day}</span>
-      </td>
-    );
+    if (data.type === "filled") className = "primary-active-day";
+    else if (data.type === "bordered") className = "secondary-active-day";
+    return <td><span className={className}>{data.day}</span></td>;
   };
 
+  // Weekly Summary Line Chart preparation
+  const weeklyData = WEEK_DAYS.map(day => {
+    const dayTasks = upcomingTasks.filter(task => {
+      const taskDay = new Date(task.due_date).toLocaleDateString("en-US", { weekday: "long" });
+      return taskDay === day;
+    });
+    return {
+      "To Do": dayTasks.filter(t => t.status === "To Do").length,
+      "In Progress": dayTasks.filter(t => t.status === "In Progress").length,
+      "To Review": dayTasks.filter(t => t.status === "To Review").length,
+      "Completed": dayTasks.filter(t => t.status === "Completed").length,
+      "Missed": dayTasks.filter(t => t.status === "Missed").length,
+    };
+  });
+
+  const lineData = {
+    labels: WEEK_DAYS,
+    datasets: ["To Do", "In Progress", "To Review", "Completed", "Missed"].map(status => ({
+      label: status,
+      data: weeklyData.map(d => d[status]),
+      borderColor: getLineColor({ dataset: { label: status } }),
+      backgroundColor: "transparent",
+      fill: false,
+      tension: 0.3,
+      pointBackgroundColor: getLineColor({ dataset: { label: status } }),
+      pointHoverBackgroundColor: makeHalfAsOpaque,
+      pointRadius: adjustRadiusBasedOnData,
+      pointHoverRadius: 15,
+    }))
+  };
+
+  const lineOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "bottom" },
+      tooltip: { enabled: true },
+      title: { display: false }
+    },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  };
+
+  // Render content
   const renderContent = () => {
     switch (activePage) {
       case "Tasks": return <Tasks setActivePage={setActivePage} />;
@@ -360,7 +351,7 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
       default:
         return (
           <div className="dashboard-content">
-            {/* === Upcoming Tasks === */}
+            {/* Upcoming Tasks */}
             <h4>UPCOMING TASKS</h4>
             <div className="upcoming-activity">
               {upcomingTasks.length === 0 ? (
@@ -373,10 +364,8 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
                       <span>{t.memberName}</span>
                     </div>
                     <div className="activity-body">
-                      <h5><i className="fas fa-tasks"></i> {t.task }</h5>
-                      <p><i className="fas fa-calendar-alt"></i>{" "}
-                        {new Date(t.due_date).toLocaleDateString()}
-                      </p>
+                      <h5><i className="fas fa-tasks"></i> {t.task}</h5>
+                      <p><i className="fas fa-calendar-alt"></i> {new Date(t.due_date).toLocaleDateString()}</p>
                       <p><i className="fas fa-clock"></i> {t.time || "No Time"}</p>
                     </div>
                   </div>
@@ -384,53 +373,20 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
               )}
             </div>
 
-            {/* === Weekly Summary & Team Progress === */}
+            {/* Weekly Summary & Team Progress */}
             <div className="summary-progress-container">
               <div className="weekly-summary">
                 <h4>WEEKLY SUMMARY</h4>
-                <div className="chart-with-legend">
-                  <div className="bar-chart-container">
-                    <div className="chart-axis-y">
-                      <span>20</span><span>18</span><span>16</span><span>14</span>
-                      <span>12</span><span>10</span><span>8</span><span>6</span>
-                      <span>4</span><span>2</span><span>0</span>
-                    </div>
-                    <div className="chart-wrapper">
-                      <div className="background-bars">
-                        <div className="background-bar"></div>
-                        <div className="background-bar"></div>
-                        <div className="background-bar"></div>
-                        <div className="background-bar"></div>
-                        <div className="background-bar"></div>
-                      </div>
-                      <div className="bar-chart">
-                        <div className="bar todo"></div>
-                        <div className="bar inprogress"></div>
-                        <div className="bar toreview"></div>
-                        <div className="bar completed"></div>
-                        <div className="bar missed"></div>
-                      </div>
-                      <div className="chart-axis-x"></div>
-                    </div>
-                  </div>
-                  <div className="legend">
-                    <span className="legend-item"><span className="legend-box todo"></span>To Do</span>
-                    <span className="legend-item"><span className="legend-box inprogress"></span>In Progress</span>
-                    <span className="legend-item"><span className="legend-box toreview"></span>To Review</span>
-                    <span className="legend-item"><span className="legend-box completed"></span>Completed</span>
-                    <span className="legend-item"><span className="legend-box missed"></span>Missed</span>
-                  </div>
-                </div>
+                <Line data={lineData} options={lineOptions} />
               </div>
 
               <div className="team-progress">
-  <h4>TEAM PROGRESS</h4>
-  <TeamProgressChart />
-  
-</div>
+                <h4>TEAM PROGRESS</h4>
+                <TeamProgressChart />
+              </div>
             </div>
 
-            {/* === Recent Activity & Calendar === */}
+            {/* Recent Activity & Calendar */}
             <div className="recent-calendar-layout">
               <div className="recent-activity">
                 <h4>RECENT TASKS CREATED</h4>
@@ -455,17 +411,9 @@ const ManagerDashboard = ({ activePageFromHeader }) => {
 
               <div className="calendar-container">
                 <div className="calendar-header-controls">
-                  <select
-                    className="calendar-month-select"
-                    value={`${month}-${year}`}
-                    onChange={handleMonthChange}
-                  >
-                    <option value={`${month}-${year}`}>
-                      {MONTH_NAMES[month]} {year}
-                    </option>
-                    {(year !== 2025 || month !== 0) && (
-                      <option value="0-2025">January 2025</option>
-                    )}
+                  <select className="calendar-month-select" value={`${month}-${year}`} onChange={handleMonthChange}>
+                    <option value={`${month}-${year}`}>{MONTH_NAMES[month]} {year}</option>
+                    {(year !== 2025 || month !== 0) && <option value="0-2025">January 2025</option>}
                   </select>
                   <div className="calendar-nav-buttons">
                     <button onClick={() => handleNav(-1)}>&lt;</button>
