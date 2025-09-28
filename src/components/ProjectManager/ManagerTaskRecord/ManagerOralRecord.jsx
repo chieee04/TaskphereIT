@@ -14,11 +14,8 @@ const managerId = customUser?.id;
 const ManagerOralDefense = () => {
     const [tasks, setTasks] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedFilter, setSelectedFilter] = useState("All");
-    const [selectedTaskIds, setSelectedTaskIds] = useState([]);
     const [isSelectionMode, setIsSelectionMode] = useState(false);
-    const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed"];
-    const FILTER_OPTIONS = ["All", "To Do", "In Progress", "To Review", "Missed"];
+    const [selectedTaskIds, setSelectedTaskIds] = useState([]);
     const REVISION_OPTIONS = Array.from({ length: 10 }, (_, i) => {
         const num = i + 1;
         if (num === 1) return "1st Revision";
@@ -29,11 +26,7 @@ const ManagerOralDefense = () => {
     // ✅ Function to get the correct color code
     const getStatusColor = (value) => {
         switch (value) {
-            case "To Do": return "#FABC3F";
-            case "In Progress": return "#809D3C";
-            case "To Review": return "#578FCA";
             case "Completed": return "#AA60C8";
-            case "Missed": return "#D60606";
             default: return "#ccc";
         }
     };
@@ -69,7 +62,7 @@ const ManagerOralDefense = () => {
                     member:user_credentials!manager_oral_task_member_id_fkey(first_name,last_name)
                 `)
                 .eq("manager_id", managerId)
-                .neq("status", "Completed")
+                .eq("status", "Completed")
                 .order("created_at", { ascending: false });
             if (error) {
                 console.error("❌ Supabase fetch error:", error.message || error);
@@ -114,7 +107,8 @@ const ManagerOralDefense = () => {
     const handleToggleSelectionMode = (enable) => {
         setIsSelectionMode(enable);
         if (!enable) {
-            setSelectedTaskIds([]); // Clear selections on cancel
+            setSelectedTaskIds([]);
+            // Clear selections on cancel
         }
     };
     const handleDeleteSelectedTasks = async () => {
@@ -239,12 +233,7 @@ const ManagerOralDefense = () => {
     // --- Filtering and Search Logic ---
     const filteredAndSearchedTasks = tasks
         .filter((task) => {
-            // 1. Filter by Status
-            if (selectedFilter !== "All" && task.status !== selectedFilter) {
-                return false;
-            }
- 
-            // 2. Filter by Search Term
+            // 1. Filter by Search Term
             if (!searchTerm) return true;
  
             const lowerSearchTerm = searchTerm.toLowerCase();
@@ -349,52 +338,10 @@ const ManagerOralDefense = () => {
             font-size: 0.85rem;
         }
  
-        /* --- Filter Styles (White background, gray border, tight width) --- */
-        .filter-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-            border: 1px solid #B2B2B2;
-            border-radius: 6px;
-            background-color: white;
-            color: #3B0304;
-            font-size: 0.85rem;
-            font-weight: 500;
-            padding: 6px 8px;
-            gap: 6px;
-            cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s;
-        }
-        .filter-wrapper:hover {
-            background-color: #f0f0f0;
-            border-color: #3B0304;
-        }
-        .filter-select {
-            /* Full transparency over the wrapper to capture clicks */
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-            z-index: 10;
-        }
-        /* Filter Dropdown Content Styles */
-        .filter-select option {
-            background-color: white !important;
-            color: black !important;
-        }
-        .filter-content {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            pointer-events: none;
-        }
- 
         /* --- Table/Dropdown Styles --- */
         .tasks-table {
-            min-width: 1200px; /* Forces horizontal scrollbar */
+            min-width: 1200px;
+            /* Forces horizontal scrollbar */
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
@@ -518,7 +465,8 @@ const ManagerOralDefense = () => {
             position: sticky;
             left: 0;
             background-color: white; /* Match container background */
-            z-index: 1; /* Ensure it stays on top of other cells */
+            z-index: 1;
+            /* Ensure it stays on top of other cells */
         }
         /* The header needs a separate sticky style with thead background */
         .tasks-table th.sticky-col {
@@ -532,7 +480,7 @@ const ManagerOralDefense = () => {
                     {/* Header */}
                     <h2 className="section-title">
                         <FaTasks className="me-2" size={18} />
-                        Oral Defense
+                        Oral Defense (Completed Tasks)
                     </h2>
                     <hr className="divider" />
                 </div>
@@ -588,7 +536,7 @@ const ManagerOralDefense = () => {
                             <button
                                 type="button"
                                 className={`primary-button ${isSelectionMode ?
-                                'delete-selected-button-white' : ''}`}
+                                    'delete-selected-button-white' : ''}`}
                                 onClick={() => {
                                     if (isSelectionMode) {
                                         handleDeleteSelectedTasks();
@@ -600,25 +548,8 @@ const ManagerOralDefense = () => {
                             >
                                 <FaTrash size={14} />
                                 {isSelectionMode ?
-                                `Delete Selected` : 'Delete'}
+                                    `Delete Selected` : 'Delete'}
                             </button>
- 
-                            {/* Filter Dropdown (White background, reduced width) */}
-                            <div className="filter-wrapper">
-                                <span className="filter-content">
-                                    <FaFilter size={14} /> Filter: {selectedFilter}
-                                </span>
- 
-                                <select
-                                    className="filter-select"
-                                    value={selectedFilter}
-                                    onChange={(e) => setSelectedFilter(e.target.value)}
-                                >
-                                    {FILTER_OPTIONS.map((option) => (
-                                        <option key={option} value={option}>{option}</option>
-                                    ))}
-                                </select>
-                            </div>
                         </div>
                     </div>
  
@@ -644,7 +575,6 @@ const ManagerOralDefense = () => {
                                     <th className="center-text">Tasks</th>
                                     <th className="center-text">Subtasks</th>
                                     <th className="center-text">Elements</th>
-                                    <th className="center-text">Date Created</th>
                                     <th className="center-text">Due Date</th>
                                     <th className="center-text">Time</th>
                                     <th className="center-text">Revision No.</th>
@@ -657,7 +587,6 @@ const ManagerOralDefense = () => {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {filteredAndSearchedTasks.map((task, idx) => {
                                     const statusColor = getStatusColor(task.status);
-                                    const isMissed = task.status === "Missed";
  
                                     return (
                                         <tr key={task.id} className="hover:bg-gray-50 transition duration-150">
@@ -680,8 +609,6 @@ const ManagerOralDefense = () => {
                                             <td className="center-text word-wrap-cell">{task.subtask}</td>
                                             <td className="center-text word-wrap-cell">{task.element}</td>
                                             {/* End of new CSS class application */}
-                                            <td className="center-text">{formatDate(task.created_at)}</td>
- 
                                             {/* Due Date Cell */}
                                             <td className="center-text">
                                                 <div className="center-content-flex">
@@ -718,41 +645,20 @@ const ManagerOralDefense = () => {
  
                                             {/* Status Dropdown / Missed Indicator */}
                                             <td className="center-text">
-                                                {isMissed ? (
-                                                    <div
-                                                        className="status-container"
-                                                        style={{ backgroundColor: statusColor }}
-                                                    >
-                                                        <span style={{
-                                                            padding: '4px 6px',
-                                                            color: 'white',
-                                                            fontWeight: '500',
-                                                            fontSize: '0.85rem',
-                                                            minWidth: '90px'
-                                                        }}>
-                                                            Missed
-                                                        </span>
-                                                    </div>
-                                                ) : (
-                                                    <div
-                                                        className="dropdown-control-wrapper"
-                                                        style={{ backgroundColor: statusColor, borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
-                                                    >
-                                                        <select
-                                                            value={task.status}
-                                                            onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                                                            className="status-select"
-                                                            style={{ backgroundColor: statusColor }}
-                                                        >
-                                                            {STATUS_OPTIONS.filter(s => s !== "Missed").map((s) => (
-                                                                <option key={s} value={s} >
-                                                                    {s}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                        <FaChevronDown className="dropdown-icon-chevron" style={{ color: 'white' }} />
-                                                    </div>
-                                                )}
+                                                <div
+                                                    className="status-container"
+                                                    style={{ backgroundColor: statusColor }}
+                                                >
+                                                    <span style={{
+                                                        padding: '4px 6px',
+                                                        color: 'white',
+                                                        fontWeight: '500',
+                                                        fontSize: '0.85rem',
+                                                        minWidth: '90px'
+                                                    }}>
+                                                        Completed
+                                                    </span>
+                                                </div>
                                             </td>
  
                                             <td className="center-text">{task.methodology}</td>

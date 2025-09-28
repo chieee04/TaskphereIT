@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";import Sidebar from "../Sidebar";
+import { useState, useEffect} from "react";
+import { useLocation } from "react-router-dom";
+
+import Sidebar from "../Sidebar";
 import Teams from "./Teams";
 import Schedule from "./Schedule";
 import ScheduleAdmin from "./Schedule";
@@ -12,14 +14,14 @@ import ManuScript from "./ManuScript";
 import OralDefense from "./OralDefense";
 import Profile from "../Profile";
 const InstructorDashboard = () => {
-
-const location = useLocation();  // ⬅️ Add this
-const [activePage, setActivePage] = useState("Dashboard");
+  const location = useLocation();  // ⬅️ Add this
+  const [activePage, setActivePage] = useState("Dashboard");
 useEffect(() => {
   if (location.state?.activePage) {
     setActivePage(location.state.activePage);
   }
 }, [location.state]);
+
   const renderContent = () => {
     switch (activePage) {
       
@@ -42,7 +44,7 @@ useEffect(() => {
       case "AdviserCredentials":
         return <AdviserCredentials />;
       case "Profile":
-        return <Profile />;
+        return <Profile/>;
 
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
@@ -59,4 +61,3 @@ useEffect(() => {
 };
 
 export default InstructorDashboard;
-

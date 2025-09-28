@@ -1,24 +1,32 @@
 import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "../../../supabaseClient";
-import { FaPlus, FaCalendarAlt, FaClock, FaCogs, FaTasks, FaTrash, FaSearch, FaTimes, FaFilter, FaChevronDown } from 'react-icons/fa'; 
+import { FaPlus, FaCalendarAlt, FaClock, FaCogs, FaTasks, FaTrash, FaSearch, FaTimes, FaFilter, FaChevronDown, FaEllipsisV, FaEdit, FaEye, FaSave, FaTimesCircle } from 'react-icons/fa'; 
 import "../../Style/ProjectManager/ManagerTitleDefense.css"; 
 import { openCreateTask, openMethodology} from "../../../services/Manager/ManagerCreateTitleTask";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-
+ 
 const MySwal = withReactContent(Swal);
-
+ 
 // --- Global Constants ---
 const customUser = JSON.parse(localStorage.getItem("customUser"));
 const managerId = customUser?.id; 
-
+ 
 const ManagerTitleDefense = () => {
   const [tasks, setTasks] = useState([]); 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [selectedTaskIds, setSelectedTaskIds] = useState([]); 
   const [isSelectionMode, setIsSelectionMode] = useState(false); 
-  
+  const [openKebabMenu, setOpenKebabMenu] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
+  const [editForm, setEditForm] = useState({
+    due_date: "",
+    due_time: ""
+  });
+ 
+  const kebabRefs = useRef({});
+ 
   const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed"];
   const FILTER_OPTIONS = ["All", "To Do", "In Progress", "To Review", "Missed"]; 
   const REVISION_OPTIONS = Array.from({ length: 10 }, (_, i) => {
@@ -28,7 +36,7 @@ const ManagerTitleDefense = () => {
     if (num === 3) return "3rd Revision";
     return `${num}th Revision`;
   });
-
+ 
   // ✅ Function to get the correct color code
   const getStatusColor = (value) => {
     switch (value) {
@@ -40,7 +48,7 @@ const ManagerTitleDefense = () => {
       default: return "#ccc";
     }
   };
-
+ 
   // ✅ Fetch tasks from Supabase (include member alias)
   const fetchTasks = async () => {
     const storedUser = JSON.parse(localStorage.getItem("customUser"));
@@ -48,9 +56,9 @@ const ManagerTitleDefense = () => {
       console.error("❌ No customUser found in localStorage");
       return;
     }
-
+ 
     const currentManagerId = storedUser.id;
-
+ 
     const { data, error } = await supabase
       .from("manager_title_task")
       .select(`
@@ -69,12 +77,12 @@ const ManagerTitleDefense = () => {
       `)
       .eq("manager_id", currentManagerId)
       .order("created_date", { ascending: false });
-
+ 
     if (error) {
       console.error("❌ Fetch error:", error);
       return;
     }
-
+ 
     // 🔹 Helper para malaman kung Missed
     const isMissed = (task) => {
       if (!task.due_date || !task.due_time) return false;
@@ -82,46 +90,58 @@ const ManagerTitleDefense = () => {
       const dueDateTime = new Date(`${task.due_date}T${task.due_time}`); 
       return now > dueDateTime && task.status !== "Completed" && task.status !== "Missed";
     };
-
+ 
     // 🔹 Update tasks kung Missed
     const updatedTasks = await Promise.all(
       data.map(async (task) => {
         if (task.status === "Completed") return task;
-
+ 
         if (isMissed(task)) {
           const { error: updateError } = await supabase
             .from("manager_title_task")
             .update({ status: "Missed" })
             .eq("id", task.id);
-
+ 
           if (updateError) {
             console.error(`❌ Error updating task ${task.id}:`, updateError);
           } 
-
+ 
           return { ...task, status: "Missed" };
         }
-
+ 
         return task;
       })
     );
-
-
+ 
     setTasks(updatedTasks);
   };
-  
+ 
   useEffect(() => {
     fetchTasks();
   }, []);
-
-
+ 
+  // Close kebab menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.kebab-menu-container') && !event.target.closest('.kebab-menu')) {
+        setOpenKebabMenu(null);
+      }
+    };
+ 
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+ 
   // --- Selection and Deletion Handlers ---
-
+ 
   const handleSelectTask = (taskId, isChecked) => {
     setSelectedTaskIds(prev => 
       isChecked ? [...prev, taskId] : prev.filter(id => id !== taskId)
     );
   };
-
+ 
   const handleSelectAllTasks = (isChecked) => {
     if (isChecked) {
       const allTaskIds = filteredAndSearchedTasks.map(task => task.id);
@@ -130,20 +150,20 @@ const ManagerTitleDefense = () => {
       setSelectedTaskIds([]);
     }
   };
-
+ 
   const handleToggleSelectionMode = (enable) => {
     setIsSelectionMode(enable);
     if (!enable) {
-      setSelectedTaskIds([]); // Clear selections on cancel
+      setSelectedTaskIds([]);
     }
   };
-
+ 
   const handleDeleteSelectedTasks = async () => {
     if (selectedTaskIds.length === 0) {
       MySwal.fire("No Selection", "Please select at least one task to delete.", "warning");
       return;
     }
-
+ 
     const result = await MySwal.fire({
       title: `Delete ${selectedTaskIds.length} Task(s)?`,
       text: "This action cannot be undone.",
@@ -153,26 +173,25 @@ const ManagerTitleDefense = () => {
       cancelButtonText: "Cancel",
       confirmButtonColor: "#3B0304", 
     });
-
+ 
     if (!result.isConfirmed) return;
-
+ 
     const { error } = await supabase
       .from("manager_title_task")
       .delete()
       .in("id", selectedTaskIds);
-
+ 
     if (error) {
       console.error("❌ Delete selected tasks error:", error);
       MySwal.fire("Error", "Failed to delete selected tasks.", "error");
     } else {
       setTasks(prev => prev.filter(t => !selectedTaskIds.includes(t.id)));
-      setIsSelectionMode(false); // Exit selection mode
+      setIsSelectionMode(false);
       setSelectedTaskIds([]); 
       MySwal.fire("Deleted!", `${selectedTaskIds.length} task(s) have been deleted.`, "success");
     }
   };
-  
-  // ✅ NEW: Dedicated function for single task deletion
+ 
   const handleSingleTaskDelete = async (taskId, taskName) => {
     const result = await MySwal.fire({
       title: `Delete Task: "${taskName}"?`,
@@ -183,36 +202,129 @@ const ManagerTitleDefense = () => {
       cancelButtonText: "Cancel",
       confirmButtonColor: "#3B0304", 
     });
-
+ 
     if (!result.isConfirmed) return;
-
+ 
     const { error } = await supabase
       .from("manager_title_task")
       .delete()
       .eq("id", taskId);
-
+ 
     if (error) {
       console.error("❌ Single task delete error:", error);
       MySwal.fire("Error", "Failed to delete the task.", "error");
     } else {
       setTasks(prev => prev.filter(t => t.id !== taskId));
       MySwal.fire("Deleted!", `Task "${taskName}" has been deleted.`, "success");
-      // If the task was selected in multi-select mode, remove it from selections
       setSelectedTaskIds(prev => prev.filter(id => id !== taskId));
     }
   };
-
-
+ 
+  // Kebab menu handlers
+  const toggleKebabMenu = (taskId) => {
+    setOpenKebabMenu(openKebabMenu === taskId ? null : taskId);
+  };
+ 
+  const handleUpdateTask = (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setEditingTask(taskId);
+      setEditForm({
+        due_date: task.due_date,
+        due_time: task.due_time
+      });
+    }
+    setOpenKebabMenu(null);
+  };
+ 
+  const handleViewTask = (taskId) => {
+    setOpenKebabMenu(null);
+    console.log("View task:", taskId);
+  };
+ 
+  const handleDeleteTask = (taskId, taskName) => {
+    setOpenKebabMenu(null);
+    handleSingleTaskDelete(taskId, taskName);
+  };
+ 
+  // Update task handler
+  const handleSaveUpdate = async (taskId) => {
+    if (!editForm.due_date || !editForm.due_time) {
+      MySwal.fire("Error", "Please fill in both date and time.", "error");
+      return;
+    }
+ 
+    // Check if the new due date/time is in the future
+    const newDueDateTime = new Date(`${editForm.due_date}T${editForm.due_time}`);
+    const now = new Date();
+    const isFuture = newDueDateTime > now;
+ 
+    // Determine new status
+    let newStatus = "To Do";
+    const currentTask = tasks.find(t => t.id === taskId);
+    if (currentTask && currentTask.status !== "Missed" && !isFuture) {
+      newStatus = currentTask.status; // Keep current status if not missed and not future
+    }
+ 
+    const { error } = await supabase
+      .from("manager_title_task")
+      .update({
+        due_date: editForm.due_date,
+        due_time: editForm.due_time,
+        status: newStatus
+      })
+      .eq("id", taskId);
+ 
+    if (error) {
+      console.error("❌ Update task error:", error);
+      MySwal.fire("Error", "Failed to update task.", "error");
+    } else {
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === taskId
+            ? {
+                ...t,
+                due_date: editForm.due_date,
+                due_time: editForm.due_time,
+                status: newStatus
+              }
+            : t
+        )
+      );
+      setEditingTask(null);
+      MySwal.fire("Success", "Task updated successfully!", "success");
+    }
+  };
+ 
+  const handleCancelUpdate = () => {
+    setEditingTask(null);
+    setEditForm({
+      due_date: "",
+      due_time: ""
+    });
+  };
+ 
+  // Get menu position
+  const getMenuPosition = (taskId) => {
+    const button = kebabRefs.current[taskId];
+    if (!button) return { top: 0, left: 0 };
+ 
+    const rect = button.getBoundingClientRect();
+    return {
+      top: rect.bottom + window.scrollY,
+      left: rect.right + window.scrollX - 120
+    };
+  };
+ 
   // --- Update Handlers ---
-
-  // ✅ Update revision
+ 
   const handleRevisionChange = async (taskId, revisionText) => {
     const revisionInt = parseInt(revisionText); 
     const { error } = await supabase
       .from("manager_title_task")
       .update({ revision: revisionInt })
       .eq("id", taskId);
-
+ 
     if (error) {
       console.error("❌ Update revision error:", error);
       MySwal.fire("Error", "Failed to update revision.", "error");
@@ -224,8 +336,7 @@ const ManagerTitleDefense = () => {
       );
     }
   };
-  
-  // ✅ Update status with SweetAlert confirm for "Completed"
+ 
   const handleStatusChange = async (taskId, newStatus) => {
     if (newStatus === "Completed") {
       const result = await MySwal.fire({
@@ -237,16 +348,16 @@ const ManagerTitleDefense = () => {
         cancelButtonText: "Cancel",
         confirmButtonColor: "#3B0304",
       });
-
+ 
       if (!result.isConfirmed) return; 
-
+ 
       const today = new Date().toISOString().split("T")[0];
-
+ 
       const { error } = await supabase
         .from("manager_title_task")
         .update({ status: newStatus, date_completed: today })
         .eq("id", taskId);
-
+ 
       if (error) {
         console.error("❌ Update status error:", error);
         MySwal.fire("Error", "Failed to update status.", "error");
@@ -259,7 +370,7 @@ const ManagerTitleDefense = () => {
         .from("manager_title_task")
         .update({ status: newStatus })
         .eq("id", taskId);
-
+ 
       if (error) {
         console.error("❌ Update status error:", error);
         MySwal.fire("Error", "Failed to update status.", "error");
@@ -272,22 +383,19 @@ const ManagerTitleDefense = () => {
       }
     }
   };
-  
+ 
   // --- Filtering and Search Logic ---
   const filteredAndSearchedTasks = tasks
     .filter((task) => task.status !== "Completed")
     .filter((task) => {
-      // 1. Filter by Status
       if (selectedFilter !== "All" && task.status !== selectedFilter) {
         return false;
       }
-      
-      // 2. Filter by Search Term
+ 
       if (!searchTerm) return true;
-
+ 
       const lowerSearchTerm = searchTerm.toLowerCase();
-      
-      // Search Task Name, Member Name, Methodology, and Project Phase
+ 
       return (
         task.task_name.toLowerCase().includes(lowerSearchTerm) ||
         `${task.member?.first_name} ${task.member?.last_name}`.toLowerCase().includes(lowerSearchTerm) ||
@@ -295,12 +403,12 @@ const ManagerTitleDefense = () => {
         task.project_phase.toLowerCase().includes(lowerSearchTerm)
       );
     });
-
+ 
   const allTasksSelected = filteredAndSearchedTasks.length > 0 && selectedTaskIds.length === filteredAndSearchedTasks.length;
-  
+ 
   return (
     <div className="container-fluid px-4 py-3">
-      
+ 
       <style>{`
         /* --- General Styles --- */
         .table-scroll-area::-webkit-scrollbar {
@@ -322,8 +430,8 @@ const ManagerTitleDefense = () => {
           margin-bottom: 1.5rem;
           border: none;
         }
-        
-        /* --- Button Styles (Create, Methodology, Cancel, Delete Selected) --- */
+ 
+        /* --- Button Styles --- */
         .primary-button {
           font-size: 0.85rem !important;
           padding: 6px 12px !important;
@@ -342,7 +450,6 @@ const ManagerTitleDefense = () => {
         .primary-button:hover {
           background-color: #f0f0f0 !important;
         }
-        /* Delete Selected is styled as a standard primary button (white background) */
         .delete-selected-button-white {
              background-color: white !important;
              color: #3B0304 !important;
@@ -351,7 +458,7 @@ const ManagerTitleDefense = () => {
         .delete-selected-button-white:hover {
             background-color: #f0f0f0 !important;
         }
-
+ 
         /* --- Search Bar Styles --- */
         .search-input-container {
             position: relative;
@@ -382,8 +489,8 @@ const ManagerTitleDefense = () => {
             color: #B2B2B2;
             font-size: 0.85rem;
         }
-
-        /* --- Filter Styles (White background, gray border, tight width) --- */
+ 
+        /* --- Filter Styles --- */
         .filter-wrapper {
             position: relative;
             display: flex;
@@ -404,7 +511,6 @@ const ManagerTitleDefense = () => {
             border-color: #3B0304; 
         }
         .filter-select {
-            /* Full transparency over the wrapper to capture clicks */
             position: absolute;
             top: 0;
             left: 0;
@@ -414,7 +520,6 @@ const ManagerTitleDefense = () => {
             cursor: pointer;
             z-index: 10;
         }
-        /* Filter Dropdown Content Styles */
         .filter-select option {
             background-color: white !important; 
             color: black !important; 
@@ -425,8 +530,7 @@ const ManagerTitleDefense = () => {
             gap: 6px;
             pointer-events: none;
         }
-
-
+ 
         /* --- Table/Dropdown Styles --- */
         .tasks-table th {
           background-color: #f8f9fa !important;
@@ -447,8 +551,7 @@ const ManagerTitleDefense = () => {
         .tasks-table tbody tr:hover {
           background-color: #f8f9fa;
         }
-        
-        /* Custom Dropdown Container and Icon Positioning */
+ 
         .dropdown-control-wrapper {
             position: relative;
             display: inline-flex;
@@ -463,8 +566,7 @@ const ManagerTitleDefense = () => {
             font-size: 0.75rem;
             z-index: 2;
         }
-        
-        /* Custom Dropdown Styling for Revision */
+ 
         .revision-select {
             border: 1px solid #ccc !important;
             background-color: white !important;
@@ -479,8 +581,7 @@ const ManagerTitleDefense = () => {
         .revision-select:focus {
              outline: 1px solid #3B0304;
         }
-        
-        /* Status Dropdown Styling (The selected value area) */
+ 
         .status-select {
           min-width: 90px;
           padding: 4px 20px 4px 6px !important; 
@@ -494,14 +595,13 @@ const ManagerTitleDefense = () => {
           text-align: center;
           width: 100%;
         }
-        
-        /* Status Dropdown Option Styles */
+ 
         .status-select option {
             color: black !important; 
             background-color: white !important; 
             padding: 4px 8px;
         }
-
+ 
         .status-container {
             display: inline-flex;
             border-radius: 4px;
@@ -509,8 +609,7 @@ const ManagerTitleDefense = () => {
             box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
             min-width: 90px;
         }
-
-        /* Helper class for Date/Time centering */
+ 
         .center-content-flex {
             display: flex;
             align-items: center;
@@ -518,35 +617,163 @@ const ManagerTitleDefense = () => {
             gap: 4px;
             height: 100%;
         }
+ 
+        /* Edit Form Styles */
+        .edit-form-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin: 4px 0;
+        }
+ 
+        .edit-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+ 
+        .edit-input {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            flex: 1;
+        }
+ 
+        .edit-buttons {
+            display: flex;
+            gap: 4px;
+            justify-content: flex-end;
+        }
+ 
+        .edit-button {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.2s;
+        }
+ 
+        .save-button {
+            background-color: #3B0304;
+            color: white;
+        }
+ 
+        .save-button:hover {
+            background-color: #2a0203;
+        }
+ 
+        .cancel-button {
+            background-color: #6c757d;
+            color: white;
+        }
+ 
+        .cancel-button:hover {
+            background-color: #5a6268;
+        }
+ 
+        /* Kebab Menu Styles - Fixed outside table */
+        .kebab-menu-container {
+            position: relative;
+            display: inline-block;
+        }
+ 
+        .kebab-button {
+            border: none;
+            background: none;
+            color: #3B0304;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 4px;
+            transition: background-color 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+ 
+        .kebab-button:hover {
+            background-color: #f0f0f0;
+        }
+ 
+        .kebab-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 9999;
+            min-width: 120px;
+            padding: 4px 0;
+        }
+ 
+        .kebab-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #495057;
+            transition: background-color 0.15s;
+            white-space: nowrap;
+        }
+ 
+        .kebab-menu-item:hover {
+            background-color: #f8f9fa;
+        }
+ 
+        .kebab-menu-item.update {
+            color: #3B0304;
+        }
+ 
+        .kebab-menu-item.view {
+            color: #578FCA;
+        }
+ 
+        .kebab-menu-item.delete {
+            color: #D60606;
+        }
+ 
+        /* Ensure table container has proper overflow */
+        .table-container {
+            position: relative;
+            overflow: auto;
+        }
       `}</style>
-
+ 
       <div className="row">
         <div className="col-12">
-          {/* Header */}
           <h2 className="section-title">
             <FaTasks className="me-2" size={18} />
             Title Defense
           </h2>
           <hr className="divider" />
         </div>
-
+ 
         <div className="col-12 col-md-12 col-lg-12">
-          
-          {/* Top Control Buttons (Row 1) */}
+ 
+          {/* Top Control Buttons */}
           <div className="d-flex align-items-center gap-2 mb-3">
-            
-            {/* Create Task Button */}
             <button
               type="button"
               className="primary-button"
               onClick={async () => {
                 const currentManagerId = customUser?.id;
-
                 const newTasks = await openCreateTask(currentManagerId, {
                   revision: 1,
                   status: "To Do",
                 });
-
                 if (newTasks && Array.isArray(newTasks)) {
                   setTasks((prev) => [...newTasks, ...prev]);
                 }
@@ -554,8 +781,7 @@ const ManagerTitleDefense = () => {
             >
               <FaPlus size={14} /> Create Task
             </button>
-
-            {/* Methodology Button */}
+ 
             <button
               type="button"
               className="primary-button"
@@ -568,13 +794,10 @@ const ManagerTitleDefense = () => {
             >
               <FaCogs size={14} /> Methodology
             </button>
-            
           </div>
-          
-          {/* Search, Delete Selected, and Filter (Row 2) */}
+ 
+          {/* Search, Delete Selected, and Filter */}
           <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-            
-            {/* Search Input (Placeholder Fixed) */}
             <div className="search-input-container">
                 <FaSearch className="search-icon" />
                 <input
@@ -585,11 +808,8 @@ const ManagerTitleDefense = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-
-            {/* Right Side Group: Delete and Filter */}
+ 
             <div className="d-flex align-items-center gap-2">
-                 
-                {/* Cancel Button (Visible in selection mode, NO ICON) */}
                 {isSelectionMode && (
                     <button
                         type="button"
@@ -599,8 +819,7 @@ const ManagerTitleDefense = () => {
                         Cancel
                     </button>
                 )}
-                 
-                {/* Delete Button (Now always white/border style) */}
+ 
                 <button
                     type="button"
                     className={`primary-button ${isSelectionMode ? 'delete-selected-button-white' : ''}`}
@@ -614,17 +833,13 @@ const ManagerTitleDefense = () => {
                     disabled={isSelectionMode && selectedTaskIds.length === 0}
                 >
                     <FaTrash size={14} /> 
-                    {/* Removed task count */}
                     {isSelectionMode ? `Delete Selected` : 'Delete'}
                 </button>
-                
-                
-                {/* Filter Dropdown (White background, reduced width) */}
+ 
                 <div className="filter-wrapper">
                     <span className="filter-content">
                         <FaFilter size={14} /> Filter: {selectedFilter} 
                     </span>
-                    
                     <select
                         className="filter-select"
                         value={selectedFilter}
@@ -637,8 +852,7 @@ const ManagerTitleDefense = () => {
                 </div>
             </div>
           </div>
-
-
+ 
           {/* Table Section */}
           <div className="bg-white rounded-lg shadow-md relative">
             <div 
@@ -648,7 +862,6 @@ const ManagerTitleDefense = () => {
               <table className="tasks-table min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    {/* Checkbox for Select All (Only show in selection mode) */}
                     {isSelectionMode && (
                         <th className="center-text" style={{ width: '40px' }}>
                             <input 
@@ -676,10 +889,10 @@ const ManagerTitleDefense = () => {
                   {filteredAndSearchedTasks.map((task, idx) => {
                       const statusColor = getStatusColor(task.status);
                       const isMissed = task.status === "Missed";
-                      
+                      const menuPosition = openKebabMenu === task.id ? getMenuPosition(task.id) : { top: 0, left: 0 };
+ 
                       return (
                         <tr key={task.id} className="hover:bg-gray-50 transition duration-150">
-                          {/* Checkbox for Single Task Selection (Only show in selection mode) */}
                           {isSelectionMode && (
                               <td className="center-text">
                                   <input 
@@ -695,24 +908,65 @@ const ManagerTitleDefense = () => {
                           </td>
                           <td className="center-text">{task.task_name}</td>
                           <td className="center-text">{task.created_date}</td>
-                          
-                          {/* Due Date Cell */}
+ 
+                          {/* Due Date Cell - Show edit form when editing */}
                           <td className="center-text">
-                            <div className="center-content-flex">
+                            {editingTask === task.id ? (
+                              <div className="edit-form-container">
+                                <div className="edit-input-group">
+                                  <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
+                                  <input
+                                    type="date"
+                                    className="edit-input"
+                                    value={editForm.due_date}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, due_date: e.target.value }))}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="center-content-flex">
                                 <FaCalendarAlt size={14} style={{ color: '#3B0304' }} />
                                 {task.due_date}
-                            </div>
+                              </div>
+                            )}
                           </td>
-                          
-                          {/* Time Cell */}
+ 
+                          {/* Time Cell - Show edit form when editing */}
                           <td className="center-text">
-                            <div className="center-content-flex">
+                            {editingTask === task.id ? (
+                              <div className="edit-form-container">
+                                <div className="edit-input-group">
+                                  <FaClock size={14} style={{ color: '#3B0304' }} />
+                                  <input
+                                    type="time"
+                                    className="edit-input"
+                                    value={editForm.due_time}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, due_time: e.target.value }))}
+                                  />
+                                </div>
+                                <div className="edit-buttons">
+                                  <button
+                                    className="edit-button save-button"
+                                    onClick={() => handleSaveUpdate(task.id)}
+                                  >
+                                    <FaSave size={12} /> Save
+                                  </button>
+                                  <button
+                                    className="edit-button cancel-button"
+                                    onClick={handleCancelUpdate}
+                                  >
+                                    <FaTimesCircle size={12} /> Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="center-content-flex">
                                 <FaClock size={14} style={{ color: '#3B0304' }} />
                                 {task.due_time}
-                            </div>
+                              </div>
+                            )}
                           </td>
-
-                          {/* Revision Dropdown */}
+ 
                           <td className="center-text">
                             <div className="dropdown-control-wrapper" style={{ minWidth: '100px' }}>
                                 <select
@@ -729,14 +983,10 @@ const ManagerTitleDefense = () => {
                                 <FaChevronDown className="dropdown-icon-chevron" style={{ color: '#3B0304' }} />
                             </div>
                           </td>
-
-                          {/* Status Dropdown / Missed Indicator */}
+ 
                           <td className="center-text">
                             {isMissed ? (
-                                <div 
-                                    className="status-container"
-                                    style={{ backgroundColor: statusColor }}
-                                >
+                                <div className="status-container" style={{ backgroundColor: statusColor }}>
                                     <span style={{ 
                                         padding: '4px 6px', 
                                         color: 'white', 
@@ -748,19 +998,13 @@ const ManagerTitleDefense = () => {
                                     </span>
                                 </div>
                             ) : (
-                                <div 
-                                    className="dropdown-control-wrapper"
-                                    // The background color of the wrapper changes based on the status color
-                                    style={{ backgroundColor: statusColor, borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
-                                >
+                                <div className="dropdown-control-wrapper" style={{ backgroundColor: statusColor, borderRadius: '4px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                                     <select
                                         value={task.status}
                                         onChange={(e) => handleStatusChange(task.id, e.target.value)}
                                         className="status-select"
-                                        // The background color of the select element is also set by the status color
                                         style={{ backgroundColor: statusColor }} 
                                     >
-                                        {/* Dropdown options are styled via CSS (status-select option) */}
                                         {STATUS_OPTIONS.filter(s => s !== "Missed").map((s) => (
                                             <option key={s} value={s} >
                                                 {s}
@@ -771,27 +1015,23 @@ const ManagerTitleDefense = () => {
                                 </div>
                             )}
                           </td>
-
+ 
                           <td className="center-text">{task.methodology}</td>
                           <td className="center-text">{task.project_phase}</td>
-                          
-                          {/* Action Column (Single Delete Button) */}
+ 
+                          {/* Action Column (Kebab Menu) */}
                           <td className="center-text">
-                             <button
-                                // ✅ UPDATED: Call the specific single task delete function
-                                onClick={() => handleSingleTaskDelete(task.id, task.task_name)} 
-                                style={{ 
-                                    border: 'none', 
-                                    background: 'none', 
-                                    color: '#3B0304', 
-                                    cursor: 'pointer',
-                                    padding: '4px',
-                                    transition: 'color 0.15s'
-                                }}
-                                title="Delete Task"
-                            >
-                                <FaTrash size={14} />
-                            </button>
+                            <div className="kebab-menu-container">
+                              <button
+                                ref={el => kebabRefs.current[task.id] = el}
+                                className="kebab-button"
+                                onClick={() => toggleKebabMenu(task.id)}
+                                title="More options"
+                                disabled={editingTask === task.id}
+                              >
+                                <FaEllipsisV size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -807,10 +1047,40 @@ const ManagerTitleDefense = () => {
               </table>
             </div>
           </div>
+ 
+          {/* Kebab Menu Portal - Rendered outside the table */}
+          {openKebabMenu && (
+            <div 
+              className="kebab-menu"
+              style={{
+                top: getMenuPosition(openKebabMenu).top,
+                left: getMenuPosition(openKebabMenu).left
+              }}
+            >
+              <button
+                className="kebab-menu-item update"
+                onClick={() => handleUpdateTask(openKebabMenu)}
+              >
+                <FaEdit size={12} /> Update
+              </button>
+              <button
+                className="kebab-menu-item view"
+                onClick={() => handleViewTask(openKebabMenu)}
+              >
+                <FaEye size={12} /> View
+              </button>
+              <button
+                className="kebab-menu-item delete"
+                onClick={() => handleDeleteTask(openKebabMenu, tasks.find(t => t.id === openKebabMenu)?.task_name)}
+              >
+                <FaTrash size={12} /> Delete
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
-
+ 
 export default ManagerTitleDefense;

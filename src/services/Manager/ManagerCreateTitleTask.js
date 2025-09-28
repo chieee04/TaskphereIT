@@ -143,10 +143,10 @@ export const openCreateTask = async () => {
   const projectPhase = document.getElementById("projectPhase");
   const taskType = document.getElementById("task_type");
   const task = document.getElementById("task");
-  const assignedMembers = document.getElementById("assignedMembers");
+  const memberSelect = document.getElementById("assignedMembers");
   const membersList = document.getElementById("membersList");
 
-  // init selected members
+  // Para ma-store yung napili
   window.__selectedMembers = [];
 
   projectPhase.value = projectPhaseMap[methodology] || "";
@@ -155,64 +155,70 @@ export const openCreateTask = async () => {
     if (taskType.value === "Documentation") {
       task.innerHTML = buildOptions(documentationTasks[methodology] || []);
     } else if (taskType.value === "Discussion & Review") {
-      task.innerHTML = buildOptions(
-        discussionTasks[methodology] || discussionTasks.default
-      );
+      task.innerHTML = buildOptions(discussionTasks[methodology] || discussionTasks.default);
     } else {
       task.innerHTML = `<option value="" disabled selected hidden></option>`;
     }
     task.disabled = false;
   });
 
-  // 🟢 assign members logic
-  assignedMembers.addEventListener("change", (e) => {
-    const memberId = e.target.value;
-    const memberText =
-      assignedMembers.options[assignedMembers.selectedIndex].text;
+  // 🟢 Members assign logic
+  memberSelect.addEventListener("change", () => {
+    const selectedId = memberSelect.value;
+    const selectedText = memberSelect.options[memberSelect.selectedIndex].text;
 
-    // add to selected list
-    const memberObj = { id: memberId, name: memberText };
-    window.__selectedMembers.push(memberObj);
+    if (!selectedId) return;
 
-    // alisin sa dropdown
-    assignedMembers.remove(assignedMembers.selectedIndex);
+    // ✅ Add to __selectedMembers
+    window.__selectedMembers.push({ id: selectedId, name: selectedText });
 
-    // refresh UI
-    renderMembersList();
-    assignedMembers.value = ""; // reset select
+    // ✅ Update Members List
+    membersList.innerHTML = window.__selectedMembers
+      .map(
+        (m) => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0;">
+            <span>${m.name}</span>
+            <button type="button" data-id="${m.id}" class="removeMember btn btn-sm btn-danger">Remove</button>
+          </div>
+        `
+      )
+      .join("");
+
+    // ✅ Remove from select choices
+    memberSelect.querySelector(`option[value="${selectedId}"]`).remove();
+    memberSelect.value = "";
   });
 
-  function renderMembersList() {
-    membersList.innerHTML = "";
-    if (window.__selectedMembers.length === 0) {
-      membersList.innerHTML = `<small style="color:#888;">No members assigned</small>`;
-      return;
+  // 🟢 Listener para sa "Remove"
+  membersList.addEventListener("click", (e) => {
+    if (e.target.classList.contains("removeMember")) {
+      const memberId = e.target.dataset.id;
+
+      // tanggalin sa __selectedMembers
+      window.__selectedMembers = window.__selectedMembers.filter((m) => m.id !== memberId);
+
+      // ibalik ulit sa select choices
+      const removedName = e.target.previousElementSibling.textContent;
+      const option = document.createElement("option");
+      option.value = memberId;
+      option.textContent = removedName;
+      memberSelect.appendChild(option);
+
+      // update Members List ulit
+      membersList.innerHTML = window.__selectedMembers.length
+        ? window.__selectedMembers
+            .map(
+              (m) => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0;">
+                  <span>${m.name}</span>
+                  <button type="button" data-id="${m.id}" class="removeMember btn btn-sm btn-danger">Remove</button>
+                </div>
+              `
+            )
+            .join("")
+        : `<small style="color:#888;">No members assigned</small>`;
     }
-
-    window.__selectedMembers.forEach((m, idx) => {
-      const div = document.createElement("div");
-      div.className =
-        "d-flex justify-content-between align-items-center mb-1 p-1 border rounded";
-      div.innerHTML = `
-        <span>${m.name}</span>
-        <button class="btn btn-sm btn-outline-danger" data-idx="${idx}">x</button>
-      `;
-      membersList.appendChild(div);
-
-      // remove handler
-      div.querySelector("button").addEventListener("click", () => {
-        // ibalik sa dropdown options
-        const option = document.createElement("option");
-        option.value = m.id;
-        option.textContent = m.name;
-        assignedMembers.appendChild(option);
-
-        // alisin sa selected list
-        window.__selectedMembers.splice(idx, 1);
-        renderMembersList();
-      });
-    });
-  }
+  });
 },
     preConfirm: () => {
       const methodology = managerMethodology;
@@ -283,7 +289,7 @@ export const openCreateTask = async () => {
         .from("manager_title_task")
         .insert([
           {
-            manager_id: currentManagerId,
+            manager_id: managerUUID,
             methodology: formData.methodology,
             project_phase: formData.projectPhase,
             task_type: formData.taskType,
