@@ -77,7 +77,11 @@ const Header = () => {
       navigate("/MemberDashboard", { state: { activePage: "Profile" } });
     } else if (customUser?.user_roles === 3) {
       navigate("/AdviserDashboard", { state: { activePage: "Profile" } });
-    } else {
+      
+    } else if (user) {
+    navigate("/InstructorDashboard", { state: { activePage: "Profile" } });
+    return;
+  }else {
       navigate("/Profile");
     }
   };

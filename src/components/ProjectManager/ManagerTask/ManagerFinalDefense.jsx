@@ -22,7 +22,7 @@ const REVISION_OPTIONS = Array.from({ length: 10 }, (_, i) => {
   return `${num}th Revision`;
 });
 
-const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed"];
+const STATUS_OPTIONS = ["To Do", "In Progress", "To Review"];
 
 export default function ManagerFinalDefense() {
   const [tasks, setTasks] = useState([]);
@@ -41,24 +41,25 @@ export default function ManagerFinalDefense() {
   };
 
   const fetchTasks = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("manager_final_task")
-        .select(
-          `*, member:user_credentials!manager_final_task_member_id_fkey(first_name, last_name)`
-        )
-        .order("due_date", { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from("manager_final_task")
+      .select(
+        `*, member:user_credentials!manager_final_task_member_id_fkey(first_name, last_name)`
+      )
+      .neq("status", "Completed") // 🚫 exclude Completed
+      .order("due_date", { ascending: true });
 
-      if (error) throw error;
-      setTasks(data || []);
-      setFilteredTasks(data || []);
-    } catch (err) {
-      console.error("Error fetching tasks:", err.message);
-      MySwal.fire("Error", "Failed to fetch Final Defense tasks", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (error) throw error;
+    setTasks(data || []);
+    setFilteredTasks(data || []);
+  } catch (err) {
+    console.error("Error fetching tasks:", err.message);
+    MySwal.fire("Error", "Failed to fetch Final Defense tasks", "error");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchTasks();
@@ -149,20 +150,25 @@ export default function ManagerFinalDefense() {
   };
 
   const handleStatusChange = async (id, value) => {
-    try {
-      const { error } = await supabase
-        .from("manager_final_task")
-        .update({ status: value })
-        .eq("id", id);
-      if (error) throw error;
+  try {
+    const { error } = await supabase
+      .from("manager_final_task")
+      .update({ status: value })
+      .eq("id", id);
+    if (error) throw error;
 
+    if (value === "Completed") {
+      // ✅ remove from active table
+      setTasks((prev) => prev.filter((t) => t.id !== id));
+    } else {
       setTasks((prev) =>
         prev.map((t) => (t.id === id ? { ...t, status: value } : t))
       );
-    } catch (err) {
-      console.error("Error updating status:", err.message);
     }
-  };
+  } catch (err) {
+    console.error("Error updating status:", err.message);
+  }
+};
 
   const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -253,8 +259,8 @@ export default function ManagerFinalDefense() {
               <th className="p-2">Tasks</th>
               <th className="p-2">Subtasks</th>
               <th className="p-2">Elements</th>
-              <th className="p-2">Due Date</th>
-              <th className="p-2">Time</th>
+              <th className="p-2 w-32 text-center">Due Date</th>
+              <th className="p-2 w-32 text-center">Time</th>
               <th className="p-2">Revision</th>
               <th className="p-2">Status</th>
               <th className="p-2">Methodology</th>
@@ -292,15 +298,19 @@ export default function ManagerFinalDefense() {
                   <td className="p-2">{task.task}</td>
                   <td className="p-2">{task.subtask}</td>
                   <td className="p-2">{task.element}</td>
-                  <td className="p-2 flex items-center gap-1 justify-center">
-                    <FaCalendarAlt />
-                    {task.due_date
-                      ? new Date(task.due_date).toLocaleDateString()
-                      : ""}
+                  <td className="p-2 text-center w-32">
+                    <span className="inline-flex items-center gap-1">
+                      <FaCalendarAlt className="text-gray-600" />
+                      {task.due_date
+                        ? new Date(task.due_date).toLocaleDateString()
+                        : ""}
+                    </span>
                   </td>
-                  <td className="p-2 flex items-center gap-1 justify-center">
-                    <FaClock />
-                    {task.time ? formatTime(task.time) : ""}
+                  <td className="p-2 text-center w-32">
+                    <span className="inline-flex items-center gap-1">
+                      <FaClock className="text-gray-600" />
+                      {task.time ? formatTime(task.time) : ""}
+                    </span>
                   </td>
                   <td className="p-2">
                     <select
@@ -318,25 +328,23 @@ export default function ManagerFinalDefense() {
                     </select>
                   </td>
                   <td className="p-2">
-                    <select
-                      value={task.status || "To Do"}
-                      onChange={(e) =>
-                        handleStatusChange(task.id, e.target.value)
-                      }
-                      className="border rounded px-2 py-1 text-sm text-white"
-                      style={{
-                        backgroundColor:
-                          statusColors[task.status] || "#FABC3F",
-                      }}
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                      <option value="Missed">Missed</option>
-                    </select>
-                  </td>
+  <select
+    value={task.status || "To Do"}
+    onChange={(e) => handleStatusChange(task.id, e.target.value)}
+    className="border rounded px-2 py-1 text-sm text-white"
+    style={{
+      backgroundColor: statusColors[task.status] || "#FABC3F",
+    }}
+  >
+    {STATUS_OPTIONS.map((s) => (
+      <option key={s} value={s}>
+        {s}
+      </option>
+    ))}
+    <option value="Missed">Missed</option>
+    <option value="Completed">Completed</option> {/* ✅ still selectable */}
+  </select>
+</td>
                   <td className="p-2">{task.methodology}</td>
                   <td className="p-2">{task.project_phase}</td>
                   <td className="p-2">

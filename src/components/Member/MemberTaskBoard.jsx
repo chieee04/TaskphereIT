@@ -73,19 +73,27 @@ const MemberTaskBoard = () => {
       ];
 
       for (const table of tables) {
-        const { data, error } = await supabase
-          .from(table)
-          .select("*")
-          .eq("manager_id", managerId);
+  const { data, error } = await supabase
+    .from(table)
+    .select("*")
+    .eq("manager_id", managerId);
 
-        if (error) {
-          console.error(`❌ Error fetching tasks from ${table}:`, error);
-          continue;
-        }
+  if (error) {
+    console.error(`❌ Error fetching tasks from ${table}:`, error);
+    continue;
+  }
 
-        allData = [...allData, ...(data || [])];
-      }
+  // 🔑 Normalize field names
+  const normalized = data.map((t) => ({
+    ...t,
+    task: t.task || t.task_name || "Untitled Task", // ✅ unify field
+    subtask: t.subtask || null,
+  }));
 
+  console.log(`✅ Normalized tasks from ${table}:`, normalized);
+
+  allData = [...allData, ...normalized];
+}
       console.log("✅ Tasks fetched for member:", allData);
 
       setAllTasks(allData);

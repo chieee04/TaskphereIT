@@ -26,7 +26,7 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
     if (location.state?.activePage) {
       setActivePage(location.state.activePage);
     }
-  }, [location.state]);
+  }, [location.key]);
 
   const renderContent = () => {
     switch (activePage) {
@@ -53,9 +53,11 @@ const AdviserDashboard = ({ activePageFromHeader }) => {
       case "Capstone Defenses":
         return <AdviserCapsDefenses />;
       case "Profile":
-        return <Profile />;
+        return <Profile/>;
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
+        
+        
     }
   };
 

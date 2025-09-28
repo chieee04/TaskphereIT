@@ -1,265 +1,115 @@
-// src/components/tasks/pm-oral-record.jsx
-import React, { useState, useEffect, useRef } from "react";
-import taskIcon from "../../../assets/tasks-icon.png";
-import searchIcon from "../../../assets/search-icon.png";
-import filterIcon from "../../../assets/filter-icon.png";
-import exitIcon from "../../../assets/exit-icon.png";
-import dueDateIcon from "../../../assets/due-date-icon.png";
-import timeIcon from "../../../assets/time-icon.png";
-import redDropdownIcon from "../../../assets/red-dropdown-icon.png";
-import dropdownIconWhite from "../../../assets/dropdown-icon-white.png";
-import "../../Style/ProjectManager/ManagerFinalRecord.css"; // hiwalay na CSS
+import { useState, useEffect } from "react";
+import { supabase } from "../../../supabaseClient";
+import { FaCalendarAlt, FaClock } from "react-icons/fa";
 
-const ManagerFinalRecord = () => {
-  const [status, setStatus] = useState("To Review");
-  const [revision, setRevision] = useState("1st Revision");
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [showRevisionDropdown, setShowRevisionDropdown] = useState(false);
-  const [filterCategory, setFilterCategory] = useState("Filter");
-  const [filterValue, setFilterValue] = useState("");
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [activeSubFilter, setActiveSubFilter] = useState(null);
+export default function ManagerFinalRecord() {
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const revisionRef = useRef(null);
-  const statusRef = useRef(null);
-  const filterRef = useRef(null);
+  const fetchCompletedTasks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("manager_final_task")
+        .select(
+          `*, member:user_credentials!manager_final_task_member_id_fkey(first_name, last_name)`
+        )
+        .eq("status", "Completed") // ✅ only Completed
+        .order("due_date", { ascending: true });
 
-  const STATUS_OPTIONS = ["To Do", "In Progress", "To Review", "Completed"];
-  const REVISION_OPTIONS = [
-    "1st Revision",
-    "2nd Revision",
-    "3rd Revision",
-    "4th Revision",
-    "5th Revision",
-  ];
-  const PROJECT_PHASES = [
-    "Planning",
-    "Design",
-    "Development",
-    "Testing",
-    "Deployment",
-    "Review",
-  ];
-
-  const getStatusColor = (value) => {
-    switch (value) {
-      case "To Do":
-        return "#FABC3F";
-      case "In Progress":
-        return "#809D3C";
-      case "To Review":
-        return "#578FCA";
-      case "Completed":
-        return "#AA60C8";
-      default:
-        return "#ccc";
+      if (error) throw error;
+      setCompletedTasks(data || []);
+    } catch (err) {
+      console.error("Error fetching completed tasks:", err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (revisionRef.current && !revisionRef.current.contains(e.target)) {
-        setShowRevisionDropdown(false);
-      }
-      if (statusRef.current && !statusRef.current.contains(e.target)) {
-        setShowStatusDropdown(false);
-      }
-      if (filterRef.current && !filterRef.current.contains(e.target)) {
-        setShowFilterDropdown(false);
-        setActiveSubFilter(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    fetchCompletedTasks();
   }, []);
 
-  const handleClearFilter = (e) => {
-    e.stopPropagation();
-    setFilterCategory("Filter");
-    setFilterValue("");
-    setShowFilterDropdown(false);
-    setActiveSubFilter(null);
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "";
+    try {
+      const [hour, minute] = timeStr.split(":");
+      let h = parseInt(hour, 10);
+      const ampm = h >= 12 ? "PM" : "AM";
+      h = h % 12 || 12;
+      return `${h}:${minute} ${ampm}`;
+    } catch {
+      return "";
+    }
   };
 
   return (
-    <div className="page-wrapper">
-      <h2 className="section-title">
-        <img src={taskIcon} alt="Tasks Icon" className="icon-image" />
-        Final Defense
-      </h2>
-      <hr className="divider" />
+    <div className="p-4">
+      <h2 className="text-[#3B0304] font-semibold mb-4">✅ Completed Final Defense Tasks</h2>
 
-      <div className="header-wrapper">
-        <div className="tasks-container">
-          <div className="search-filter-wrapper">
-            <div className="search-bar">
-              <img src={searchIcon} alt="Search" className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search"
-                className="search-input"
-              />
-            </div>
-
-            <div className="filter-wrapper" ref={filterRef}>
-              <button
-                type="button"
-                className="filter-button"
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              >
-                <img src={filterIcon} alt="Filter" className="filter-icon" />
-                {filterValue || filterCategory}
-                {filterValue && (
-                  <img
-                    src={exitIcon}
-                    alt="Clear Filter"
-                    className="clear-icon"
-                    onClick={handleClearFilter}
-                  />
-                )}
-              </button>
-
-              {showFilterDropdown && (
-                <div className="dropdown-menu filter-dropdown-menu">
-                  {!activeSubFilter ? (
-                    <div
-                      className="dropdown-item"
-                      onClick={() => setActiveSubFilter("Project Phase")}
-                    >
-                      Project Phase
-                    </div>
-                  ) : (
-                    <>
-                      <div className="dropdown-title">{activeSubFilter}</div>
-                      <hr />
-                      {PROJECT_PHASES.map((opt) => (
-                        <div
-                          key={opt}
-                          className="dropdown-item"
-                          onClick={() => {
-                            setFilterValue(opt);
-                            setFilterCategory(activeSubFilter);
-                            setShowFilterDropdown(false);
-                            setActiveSubFilter(null);
-                          }}
-                        >
-                          {opt}
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <table className="tasks-table">
-            <thead>
+      <div className="border rounded-lg shadow-sm overflow-x-auto">
+        <table className="w-full text-sm min-w-[1000px] text-center">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-2">No</th>
+              <th className="p-2">Assigned</th>
+              <th className="p-2">Tasks</th>
+              <th className="p-2">Subtasks</th>
+              <th className="p-2">Elements</th>
+              <th className="p-2 w-32 text-center">Due Date</th>
+              <th className="p-2 w-32 text-center">Time</th>
+              <th className="p-2">Revision</th>
+              <th className="p-2">Methodology</th>
+              <th className="p-2">Project Phase</th>
+              <th className="p-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
               <tr>
-                <th className="center-text">NO</th>
-                <th className="center-text">Assigned</th>
-                <th className="center-text">Tasks</th>
-                <th className="center-text">Subtasks</th>
-                <th className="center-text">Elements</th>
-                <th className="center-text">Date Created</th>
-                <th className="center-text">Due Date</th>
-                <th className="center-text">Time</th>
-                <th className="center-text">Date Completed</th>
-                <th className="center-text">Revision No.</th>
-                <th className="center-text">Status</th>
-                <th className="center-text">Methodology</th>
-                <th className="center-text">Project Phase</th>
+                <td colSpan="11" className="text-center p-4">
+                  Loading...
+                </td>
               </tr>
-            </thead>
-            <tbody>
+            ) : completedTasks.length === 0 ? (
               <tr>
-                <td className="center-text">1.</td>
-                <td className="center-text">John Doe</td>
-                <td className="center-text">Oral Defense Task Example</td>
-                <td className="center-text">Prepare Slides</td>
-                <td className="center-text">Introduction, Q&A</td>
-                <td className="center-text">Aug 20, 2025</td>
-                <td className="center-text">
-                  <img src={dueDateIcon} alt="Due Date" className="inline-icon" />
-                  Aug 25, 2025
+                <td colSpan="11" className="text-center p-4">
+                  No Completed Tasks
                 </td>
-                <td className="center-text">
-                  <img src={timeIcon} alt="Time" className="inline-icon" />
-                  2:00 PM
-                </td>
-                <td className="center-text">Aug 28, 2025</td>
-                <td className="center-text revision-cell" ref={revisionRef}>
-                  <div
-                    className="dropdown-wrapper"
-                    onClick={() => setShowRevisionDropdown(!showRevisionDropdown)}
-                  >
-                    <div className="revision-badge">
-                      {revision}
-                      <img
-                        src={redDropdownIcon}
-                        alt="▼"
-                        className="revision-dropdown-icon"
-                      />
-                    </div>
-                    {showRevisionDropdown && (
-                      <div className="dropdown-menu">
-                        {REVISION_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setRevision(opt);
-                              setShowRevisionDropdown(false);
-                            }}
-                          >
-                            {opt}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text status-cell" ref={statusRef}>
-                  <div className="dropdown-wrapper">
-                    <div
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(status) }}
-                      onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    >
-                      {status}
-                      <img
-                        src={dropdownIconWhite}
-                        alt="▼"
-                        className="status-dropdown-icon"
-                      />
-                    </div>
-                    {showStatusDropdown && (
-                      <div className="dropdown-menu">
-                        {STATUS_OPTIONS.map((opt) => (
-                          <div
-                            key={opt}
-                            className="dropdown-item"
-                            onClick={() => {
-                              setStatus(opt);
-                              setShowStatusDropdown(false);
-                            }}
-                          >
-                            {opt}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="center-text">Qualitative</td>
-                <td className="center-text">Planning</td>
               </tr>
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              completedTasks.map((task, index) => (
+                <tr key={task.id} className="border-t hover:bg-gray-50">
+                  <td className="p-2">{index + 1}</td>
+                  <td className="p-2">
+                    {task.member?.first_name} {task.member?.last_name}
+                  </td>
+                  <td className="p-2">{task.task}</td>
+                  <td className="p-2">{task.subtask}</td>
+                  <td className="p-2">{task.element}</td>
+                  <td className="p-2 text-center w-32">
+                    <span className="inline-flex items-center gap-1">
+                      <FaCalendarAlt className="text-gray-600" />
+                      {task.due_date
+                        ? new Date(task.due_date).toLocaleDateString()
+                        : ""}
+                    </span>
+                  </td>
+                  <td className="p-2 text-center w-32">
+                    <span className="inline-flex items-center gap-1">
+                      <FaClock className="text-gray-600" />
+                      {task.time ? formatTime(task.time) : ""}
+                    </span>
+                  </td>
+                  <td className="p-2">{task.revision}</td>
+                  <td className="p-2">{task.methodology}</td>
+                  <td className="p-2">{task.project_phase}</td>
+                  <td className="p-2 text-green-600 font-bold">Completed</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
-};
-
-export default ManagerFinalRecord;
+}

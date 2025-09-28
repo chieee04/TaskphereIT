@@ -10,6 +10,7 @@ import Adviser from "./Adviser-Enroll";
 import TitleDefense from "./TitleDefense";
 import ManuScript from "./ManuScript";
 import OralDefense from "./OralDefense";
+import Profile from "../Profile";
 const InstructorDashboard = () => {
 
   const [activePage, setActivePage] = useState("Dashboard");
@@ -35,6 +36,9 @@ const InstructorDashboard = () => {
         return <StudentCredentials />;
       case "AdviserCredentials":
         return <AdviserCredentials />;
+      case "Profile":
+        return <Profile />;
+
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
     }

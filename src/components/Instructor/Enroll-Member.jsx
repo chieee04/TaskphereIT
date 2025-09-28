@@ -99,7 +99,7 @@ const Enroll = () => {
   const handleDownload = () => {
     const sampleData = [
       {
-        user_id: "2025-0001",
+        user_id: "20250001",
         password: "password123",
         first_name: "Juan",
         last_name: "Dela Cruz",
@@ -116,33 +116,76 @@ const Enroll = () => {
     );
   };
  
-  const handleImport = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
- 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
- 
-      const processedData = jsonData.map((row) => ({
-        id: uuidv4(), 
-        user_id: row.user_id || "",
+const handleImport = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+    // 1️⃣ Check for numbers in first or last name
+    const invalidRow = jsonData.find(
+      (row) => /\d/.test(row.first_name || "") || /\d/.test(row.last_name || "")
+    );
+
+    if (invalidRow) {
+      MySwal.fire({
+        title: "Invalid Name",
+        text: "Numbers in First Name or Last Name are not allowed. Import cancelled.",
+        icon: "warning",
+        confirmButtonColor: "#3B0304",
+      });
+      return; // Stop import
+    }
+
+    // 2️⃣ Check for duplicate user_id in the imported file
+    const idCounts = jsonData.reduce((acc, row) => {
+      const id = row.user_id ? String(row.user_id).trim() : "";
+      if (id) acc[id] = (acc[id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const duplicateId = Object.keys(idCounts).find((id) => idCounts[id] > 1);
+
+    if (duplicateId) {
+      MySwal.fire({
+        title: "Duplicate ID",
+        text: `Student ID "${duplicateId}" is duplicated. Import cancelled.`,
+        icon: "warning",
+        confirmButtonColor: "#3B0304",
+      });
+      return; // Stop import
+    }
+
+    // If all valid, process data
+    const processedData = jsonData.map((row) => {
+      const firstName = row.first_name || "";
+      const lastName = row.last_name || "";
+
+      return {
+        id: uuidv4(),
+        user_id: row.user_id ? String(row.user_id).replace(/\D/g, "") : "",
         password: row.password || "",
-        first_name: row.first_name || "",
-        last_name: row.last_name || "",
+        first_name: firstName,
+        last_name: lastName,
         middle_name: row.middle_name || "",
-      }));
- 
-      setImportedData(processedData);
-      setSelectedRows([]); 
-      setSearchTerm("");
-    };
-    reader.readAsArrayBuffer(file);
+      };
+    });
+
+    setImportedData(processedData);
+    setSelectedRows([]);
+    setSearchTerm("");
   };
+
+  reader.readAsArrayBuffer(file);
+};
+
+
  
   const handleUpload = async () => {
     if (importedData.length === 0) {
@@ -254,25 +297,33 @@ const Enroll = () => {
         popup.querySelector('#save-btn').addEventListener('mouseleave', (e) => e.target.style.opacity = '1');
  
       },
-      preConfirm: () => {
-        const user_id = document.getElementById("user_id").value;
-        const password = document.getElementById("password").value;
-        const first_name = document.getElementById("first_name").value;
-        const last_name = document.getElementById("last_name").value;
- 
-        if (!user_id || !password || !first_name || !last_name) {
-          MySwal.showValidationMessage('Please fill out all required fields (ID, Password, First, Last Name).');
-          return false;
-        }
- 
-        return {
-          user_id: user_id,
-          password: password,
-          first_name: first_name,
-          last_name: last_name,
-          middle_name: document.getElementById("middle_name").value,
-        };
-      },
+preConfirm: () => {
+  const user_id = document.getElementById("user_id").value;
+  const password = document.getElementById("password").value;
+  const first_name = document.getElementById("first_name").value;
+  const last_name = document.getElementById("last_name").value;
+
+  if (!user_id || !password || !first_name || !last_name) {
+    MySwal.showValidationMessage(
+      'Please fill out all required fields (ID, Password, First, Last Name).'
+    );
+    return false;
+  }
+
+  // Number check
+  if (/\d/.test(first_name) || /\d/.test(last_name)) {
+    MySwal.showValidationMessage('Numbers in First Name or Last Name are not allowed.');
+    return false;
+  }
+
+  return {
+    user_id,
+    password,
+    first_name,
+    last_name,
+    middle_name: document.getElementById("middle_name").value,
+  };
+},
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedData = [...importedData];
@@ -315,19 +366,18 @@ const Enroll = () => {
  
   // --- Filtering ---
   const filteredData = importedData.filter((row) => {
-    const userId = (row.user_id ?? "").toLowerCase();
-    const firstName = (row.first_name ?? "").toLowerCase();
-    const lastName = (row.last_name ?? "").toLowerCase();
-    const middleName = (row.middle_name ?? "").toLowerCase();
- 
-    return (
-      userId.includes(searchTerm.toLowerCase()) ||
-      firstName.includes(searchTerm.toLowerCase()) ||
-      lastName.includes(searchTerm.toLowerCase()) ||
-      middleName.includes(searchTerm.toLowerCase())
-    );
-  });
- 
+  const userId = String(row.user_id ?? "").toLowerCase();
+  const firstName = String(row.first_name ?? "").toLowerCase();
+  const lastName = String(row.last_name ?? "").toLowerCase();
+  const middleName = String(row.middle_name ?? "").toLowerCase();
+
+  return (
+    userId.includes(searchTerm.toLowerCase()) ||
+    firstName.includes(searchTerm.toLowerCase()) ||
+    lastName.includes(searchTerm.toLowerCase()) ||
+    middleName.includes(searchTerm.toLowerCase())
+  );
+});
   const isAllSelected = filteredData.length > 0 && 
                         filteredData.every(row => selectedRows.includes(row.id));
  

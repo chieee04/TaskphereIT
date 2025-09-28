@@ -14,18 +14,12 @@ export default function AdviserManuResult() {
   const [customUser, setCustomUser] = useState(null);
 
   const PERCENTAGE_OPTIONS = Array.from({ length: 21 }, (_, i) => i * 5);
-  const REVISION_OPTIONS = [
-    { label: "No Revision", value: 0 },
-    { label: "1st Revision", value: 1 },
-    { label: "2nd Revision", value: 2 },
-    { label: "3rd Revision", value: 3 },
-    { label: "4th Revision", value: 4 },
-    { label: "5th Revision", value: 5 },
-    { label: "6th Revision", value: 6 },
-    { label: "7th Revision", value: 7 },
-    { label: "8th Revision", value: 8 },
-    { label: "9th Revision", value: 9 },
-    { label: "10th Revision", value: 10 },
+
+  // ✅ Updated: Status options
+  const STATUS_OPTIONS = [
+    { label: "Pending", value: 1 },
+    { label: "Passed", value: 2 },
+    { label: "Re-Check", value: 3 },
   ];
 
   useEffect(() => {
@@ -52,7 +46,7 @@ export default function AdviserManuResult() {
             ...s,
             plagiarism: s.plagiarism ?? 0,
             ai: s.ai ?? 0,
-            status: s.status ?? 0,
+            verdic: s.verdic ?? 1, // ✅ default Pending
           }))
         );
       }
@@ -168,7 +162,6 @@ export default function AdviserManuResult() {
             s.id === sched.id ? { ...s, file_uploaded: null, file_url: null } : s
           )
         );
-console.log("Removing file:", sched.file_url);
 
         Swal.fire("Removed", "File removed successfully!", "success");
       } catch (err) {
@@ -211,7 +204,7 @@ console.log("Removing file:", sched.file_url);
               <th>PLAGIARISM</th>
               <th>AI</th>
               <th>FILE</th>
-              <th>REVISION</th>
+              <th>STATUS</th> {/* ✅ Changed header */}
             </tr>
           </thead>
           <tbody>
@@ -283,12 +276,12 @@ console.log("Removing file:", sched.file_url);
                   </td>
                   <td>
                     <select
-                      value={sched.status}
+                      value={sched.verdic || 1} // ✅ use verdic column
                       onChange={(e) =>
-                        updateField(sched.id, "status", parseInt(e.target.value))
+                        updateField(sched.id, "verdic", parseInt(e.target.value))
                       }
                     >
-                      {REVISION_OPTIONS.map((opt) => (
+                      {STATUS_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>

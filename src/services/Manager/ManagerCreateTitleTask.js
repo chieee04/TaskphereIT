@@ -139,26 +139,81 @@ export const openCreateTask = async () => {
       </div>
     `,
     didOpen: () => {
-      const methodology = managerMethodology;
-      const projectPhase = document.getElementById("projectPhase");
-      const taskType = document.getElementById("task_type");
-      const task = document.getElementById("task");
+  const methodology = managerMethodology;
+  const projectPhase = document.getElementById("projectPhase");
+  const taskType = document.getElementById("task_type");
+  const task = document.getElementById("task");
+  const assignedMembers = document.getElementById("assignedMembers");
+  const membersList = document.getElementById("membersList");
 
-      projectPhase.value = projectPhaseMap[methodology] || "";
+  // init selected members
+  window.__selectedMembers = [];
 
-      taskType.addEventListener("change", () => {
-        if (taskType.value === "Documentation") {
-          task.innerHTML = buildOptions(documentationTasks[methodology] || []);
-        } else if (taskType.value === "Discussion & Review") {
-          task.innerHTML = buildOptions(discussionTasks[methodology] || discussionTasks.default);
-        } else {
-          task.innerHTML = `<option value="" disabled selected hidden></option>`;
-        }
-        task.disabled = false;
+  projectPhase.value = projectPhaseMap[methodology] || "";
+
+  taskType.addEventListener("change", () => {
+    if (taskType.value === "Documentation") {
+      task.innerHTML = buildOptions(documentationTasks[methodology] || []);
+    } else if (taskType.value === "Discussion & Review") {
+      task.innerHTML = buildOptions(
+        discussionTasks[methodology] || discussionTasks.default
+      );
+    } else {
+      task.innerHTML = `<option value="" disabled selected hidden></option>`;
+    }
+    task.disabled = false;
+  });
+
+  // 🟢 assign members logic
+  assignedMembers.addEventListener("change", (e) => {
+    const memberId = e.target.value;
+    const memberText =
+      assignedMembers.options[assignedMembers.selectedIndex].text;
+
+    // add to selected list
+    const memberObj = { id: memberId, name: memberText };
+    window.__selectedMembers.push(memberObj);
+
+    // alisin sa dropdown
+    assignedMembers.remove(assignedMembers.selectedIndex);
+
+    // refresh UI
+    renderMembersList();
+    assignedMembers.value = ""; // reset select
+  });
+
+  function renderMembersList() {
+    membersList.innerHTML = "";
+    if (window.__selectedMembers.length === 0) {
+      membersList.innerHTML = `<small style="color:#888;">No members assigned</small>`;
+      return;
+    }
+
+    window.__selectedMembers.forEach((m, idx) => {
+      const div = document.createElement("div");
+      div.className =
+        "d-flex justify-content-between align-items-center mb-1 p-1 border rounded";
+      div.innerHTML = `
+        <span>${m.name}</span>
+        <button class="btn btn-sm btn-outline-danger" data-idx="${idx}">x</button>
+      `;
+      membersList.appendChild(div);
+
+      // remove handler
+      div.querySelector("button").addEventListener("click", () => {
+        // ibalik sa dropdown options
+        const option = document.createElement("option");
+        option.value = m.id;
+        option.textContent = m.name;
+        assignedMembers.appendChild(option);
+
+        // alisin sa selected list
+        window.__selectedMembers.splice(idx, 1);
+        renderMembersList();
       });
-
-      // same members assign logic as before...
-    },
+    });
+  }
+},
     preConfirm: () => {
       const methodology = managerMethodology;
       const projectPhase = document.getElementById("projectPhase").value;
