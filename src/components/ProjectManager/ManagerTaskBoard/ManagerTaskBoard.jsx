@@ -1,4 +1,4 @@
-// ManagerTaskBoard.jsx
+// src/components/Manager/ManagerTaskBoard.jsx
 import React, { useState, useEffect } from "react";
 import boardIcon from "../../../assets/tasks-board-icon.png";
 import searchIcon from "../../../assets/search-icon.png";
@@ -10,7 +10,6 @@ const statusColors = {
   "To Do": "#FABC3F",
   "In Progress": "#809D3C",
   "To Review": "#578FCA",
-  "Completed": "#AA60C8",
   "Missed": "#D32F2F",
 };
 
@@ -22,11 +21,9 @@ const ManagerTaskBoard = () => {
     "To Do": [],
     "In Progress": [],
     "To Review": [],
-    "Completed": [],
     "Missed": [],
   });
 
-  // ✅ Fetch tasks created by the logged-in Manager
   useEffect(() => {
     const fetchTasks = async () => {
       const storedUser = localStorage.getItem("customUser");
@@ -35,52 +32,79 @@ const ManagerTaskBoard = () => {
         return;
       }
 
-      const manager = JSON.parse(storedUser);
-      console.log("👤 Logged-in Manager:", manager);
+      const currentUser = JSON.parse(storedUser);
 
-      const { data, error } = await supabase
-        .from("manager_title_task")
-        .select("*") // ✅ kunin lahat muna for debugging
-        .eq("manager_id", manager.id);
+      // ✅ Kunin ang buong user record para makuha yung `id`
+      const { data: userData, error: userError } = await supabase
+        .from("user_credentials")
+        .select("id, user_id")
+        .eq("user_id", currentUser.user_id)
+        .single();
 
-      if (error) {
-        console.error("❌ Error fetching manager tasks:", error);
+      if (userError) {
+        console.error("❌ Error fetching user:", userError);
         return;
       }
 
-      console.log("✅ Raw tasks fetched:", data);
+      if (!userData?.id) {
+        console.error("❌ User ID not found in user_credentials");
+        return;
+      }
 
-      setAllTasks(data);
-      groupTasksByStatus(data);
+      const managerId = userData.id;
+      console.log("👤 Logged-in Manager ID:", managerId);
+
+      let allData = [];
+      const tables = [
+        "manager_title_task",
+        "manager_oral_task",
+        "manager_final_task",
+      ];
+
+      for (const table of tables) {
+        const { data, error } = await supabase
+          .from(table)
+          .select("*")
+          .eq("manager_id", managerId);
+
+        if (error) {
+          console.error(`❌ Error fetching tasks from ${table}:`, error);
+          continue;
+        }
+
+        console.log(`✅ Tasks from ${table}:`, data);
+        allData = [...allData, ...data];
+      }
+
+      setAllTasks(allData);
+      groupTasksByStatus(allData);
     };
 
     fetchTasks();
   }, []);
 
-  // ✅ Group tasks by status
   const groupTasksByStatus = (tasks) => {
     const grouped = {
       "To Do": [],
       "In Progress": [],
       "To Review": [],
-      "Completed": [],
       "Missed": [],
     };
 
     tasks.forEach((task) => {
+      if (task.status === "Completed") return; // ✅ skip completed tasks
+
       let status = (task.status || "To Do").trim();
-      if (!grouped[status]) status = "Missed";
+      if (!grouped[status]) status = "Missed"; // fallback
       grouped[status].push(task);
     });
 
-    console.log("📌 Grouped Tasks:", grouped);
     setTasksByStatus(grouped);
   };
 
-  // ✅ Apply search filter
   useEffect(() => {
     const filtered = allTasks.filter((task) =>
-      task.task_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      task.task?.toLowerCase().includes(searchTerm.toLowerCase())
     );
     groupTasksByStatus(filtered);
   }, [searchTerm, allTasks]);
@@ -89,7 +113,6 @@ const ManagerTaskBoard = () => {
     <div className="container mt-4 adviser-board">
       {!viewTask ? (
         <>
-          {/* Header */}
           <div className="d-flex align-items-center mb-3">
             <img
               src={boardIcon}
@@ -100,7 +123,7 @@ const ManagerTaskBoard = () => {
           </div>
           <hr />
 
-          {/* Search Bar */}
+          {/* 🔍 Search Box */}
           <div className="mb-4">
             <div className="input-group" style={{ maxWidth: "300px" }}>
               <span className="input-group-text">
@@ -109,14 +132,14 @@ const ManagerTaskBoard = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search task name"
+                placeholder="Search task"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Task Columns */}
+          {/* 🗂️ Task Columns */}
           <div className="d-flex gap-3 overflow-auto">
             {Object.entries(tasksByStatus).map(([status, items]) => (
               <div
@@ -144,7 +167,6 @@ const ManagerTaskBoard = () => {
                           key={index}
                           style={{ borderLeft: `6px solid ${borderColor}` }}
                         >
-                          {/* View Button */}
                           <button
                             onClick={() => setViewTask(task)}
                             title="View Task"
@@ -167,7 +189,7 @@ const ManagerTaskBoard = () => {
                               borderWidth: "2px",
                             }}
                           />
-                          <p className="mb-1">{task.task_name}</p>
+                          <p className="mb-1">{task.task}</p>
                           <p className="mb-1">
                             {task.subtask || "No Subtask"}
                           </p>
@@ -212,9 +234,9 @@ const ManagerTaskBoard = () => {
           >
             ← Back
           </button>
-          <h4>{viewTask.task_name}</h4>
+          <h4>{viewTask.task}</h4>
           <p>Assigned to: {viewTask.assigned_to || "No Member"}</p>
-          <p>Due: {viewTask.due_date}</p>
+          <p>Due: {viewTask.due_date || "No Due Date"}</p>
           <p>Status: {viewTask.status}</p>
         </div>
       )}

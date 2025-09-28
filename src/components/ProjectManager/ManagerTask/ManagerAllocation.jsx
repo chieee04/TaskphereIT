@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../supabaseClient";
-import taskIcon from "../../assets/tasks-allocation.png";
-import "../Style/Member/MemberAllocation.css";
+import { supabase } from "../../../supabaseClient";
+import taskIcon from "../../../assets/tasks-allocation.png";
+import "../../Style/Member/MemberAllocation.css";
 
-const MemberAllocation = () => {
+const ManagerAllocation = () => {
 const [members, setMembers] = useState([]);
 const [loading, setLoading] = useState(true);
 
@@ -169,4 +169,4 @@ Tasks Allocation </h2> <hr className="divider" />
 );
 };
 
-export default MemberAllocation;
+export default ManagerAllocation;

@@ -26,7 +26,7 @@ const Profile = () => {
         // 🔍 Step 2: Fetch from Supabase
         let query = supabase
           .from("user_credentials")
-          .select("user_id, first_name, last_name, middle_name, user_roles, email");
+          .select("user_id, first_name, last_name, middle_name, user_roles");
 
         if (userId) {
           query = query.eq("id", userId); // Try matching by PK
@@ -273,7 +273,7 @@ const Profile = () => {
               </div>
               <div className="form-group">
                 <label>Email</label>
-                <input type="email" className="form-control" value={userData.email} readOnly />
+                <input type="email" className="form-control" value=""/*{userData.email}*/ readOnly />
               </div>
             </div>
           </div>

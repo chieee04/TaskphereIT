@@ -1,14 +1,53 @@
 import React, { useEffect, useState } from "react";
-import { FaBell, FaUserCircle } from "react-icons/fa";
+import { FaBell, FaUserCircle } from "react-icons/fa"; 
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/img/Logo.png";
 import { UserAuth } from "../Contex/AuthContext";
-
+ 
+// --- TEMPORARY INLINE CSS STYLES FOR THE SWITCH ---
+// (Kept from previous steps for visual functionality)
+const switchContainerStyle = {
+    width: '70px', 
+    height: '24px', 
+    borderRadius: '12px', 
+    padding: '2px',
+    display: 'flex',
+    alignItems: 'center',
+    cursor: 'pointer',
+    position: 'relative',
+    transition: 'background-color 0.3s',
+    border: '1px solid black' 
+};
+ 
+const sliderStyle = {
+    width: '20px', 
+    height: '20px', 
+    backgroundColor: 'white',
+    borderRadius: '50%',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+    transition: 'transform 0.3s'
+};
+ 
+const textStyle = {
+    position: 'absolute',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    fontSize: '10px', 
+    fontWeight: 'bold',
+    width: '100%',
+    textAlign: 'center', 
+    zIndex: 1
+};
+// ----------------------------------------------------
+ 
+ 
 const Header = () => {
   const { user, logout } = UserAuth();
   const navigate = useNavigate();
   const [activeUser, setActiveUser] = useState(null);
-
+  const [showProfileCard, setShowProfileCard] = useState(false);
+  const [isSoloMode, setIsSoloMode] = useState(false); 
+ 
   useEffect(() => {
     if (user) {
       setActiveUser(user);
@@ -17,27 +56,21 @@ const Header = () => {
       const adminUser = localStorage.getItem("adminUser");
       if (customUser) setActiveUser(JSON.parse(customUser));
       else if (adminUser) setActiveUser(JSON.parse(adminUser));
-      else setActiveUser(null); // ✅ clear agad pag wala
+      else setActiveUser(null);
     }
   }, [user]);
-
+ 
   const handleSignOut = async () => {
     await logout();
-
-    // ✅ clear local storage
     localStorage.removeItem("customUser");
     localStorage.removeItem("adminUser");
-
-    // ✅ clear local state
     setActiveUser(null);
-
-    // redirect
     navigate("/");
   };
-
+ 
   const handleProfileClick = () => {
     const customUser = JSON.parse(localStorage.getItem("customUser"));
-
+ 
     if (customUser?.user_roles === 1) {
       navigate("/ManagerDashboard", { state: { activePage: "Profile" } });
     } else if (customUser?.user_roles === 2) {
@@ -48,7 +81,18 @@ const Header = () => {
       navigate("/Profile");
     }
   };
-
+ 
+  const getUserRole = () => {
+    const roleId = activeUser?.user_roles;
+    if (roleId === 1) return "Manager";
+    if (roleId === 2) return "Member";
+    if (roleId === 3) return "Adviser";
+    return "User"; 
+  };
+ 
+  const userName = activeUser ? `${activeUser.firstName || ''} ${activeUser.lastName || ''}`.trim() : "Guest";
+  const userRole = getUserRole(); 
+ 
   return (
     <div
       className="mb-3 px-4 py-2"
@@ -60,34 +104,127 @@ const Header = () => {
         alignItems: "center",
         justifyContent: "space-between",
         height: "60px",
+        position: "relative",
       }}
     >
       <a href="/" style={{ display: "inline-block" }}>
         <img src={Logo} width="150" height="120" alt="Logo" />
       </a>
-
+ 
       {activeUser && (
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <label className="switch">
-            <input type="checkbox" />
-            <span className="slider round"></span>
-          </label>
-
-          <button style={{ background: "none", border: "none", cursor: "pointer" }}>
-            <FaBell size={20} />
-          </button>
-
-          <button
-            style={{ background: "none", border: "none", cursor: "pointer" }}
-            onClick={handleProfileClick}
+        <div 
+          style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            marginRight: "10px",
+            gap: "10px" 
+          }}
+        >
+ 
+          {/* TEMPORARY INLINE SWITCH IMPLEMENTATION */}
+          <div 
+              style={{
+                  ...switchContainerStyle,
+                  backgroundColor: isSoloMode ? '#000000' : '#FFFFFF', 
+                  justifyContent: isSoloMode ? 'flex-end' : 'flex-start', 
+              }}
+              onClick={() => setIsSoloMode(!isSoloMode)}
           >
-            <FaUserCircle size={22} />
+              <div style={{
+                  ...textStyle,
+                  color: isSoloMode ? 'white' : 'black', 
+              }}>
+                  {isSoloMode ? 'SOLO' : 'TEAM'}
+              </div>
+              <div 
+                  style={{
+                      ...sliderStyle,
+                  }}
+              />
+          </div>
+ 
+          {/* Bell Icon: Size 20px */}
+          <button style={{ 
+            background: "none", 
+            border: "none", 
+            cursor: "pointer", 
+            color: "black" 
+          }}>
+            <FaBell size={20} /> 
           </button>
+ 
+          {/* Profile Logo Container: Handles hover logic */}
+          <div
+            style={{ position: "relative" }}
+            onMouseEnter={() => setShowProfileCard(true)}
+            onMouseLeave={() => setShowProfileCard(false)}
+          >
+            {/* Profile Icon: Size 20px */}
+            <button
+              style={{ 
+                background: "none", 
+                border: "none", 
+                cursor: "pointer", 
+                display: 'flex', 
+                alignItems: 'center',
+                color: "black" 
+              }}
+              onClick={handleProfileClick}
+            >
+              <FaUserCircle size={20} />
+            </button>
+ 
+            {/* ✅ MODIFIED Profile Card with new Header structure */}
+            {showProfileCard && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 10px)",
+                  right: "-5px", 
+                  width: "250px",
+                  backgroundColor: "white",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                  padding: "15px",
+                  zIndex: 1000,
+                }}
+              >
+                {/* 1. New Profile Header with Underline */}
+                <div style={{ 
+                    marginBottom: '10px',
+                    paddingBottom: '5px',
+                    borderBottom: '1px solid black' 
+                }}>
+                    <p style={{ 
+                        margin: 0, 
+                        fontWeight: 'bold', 
+                        fontSize: '18px', 
+                        color: 'black' 
+                    }}>
+                        Profile
+                    </p>
+                </div>
+ 
+                {/* 2. Reverted Core Profile Details */}
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <FaUserCircle size={28} style={{ marginRight: "10px", color: "#6c757d" }} />
+                  <div style={{ lineHeight: "1.2" }}>
+                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
+                      {userName}
+                    </p>
+                    {/* Role is placed below name */}
+                    <p style={{ margin: 0, fontSize: "12px", color: "#6c757d" }}>
+                      {userRole}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 };
-
-
+ 
 export default Header;

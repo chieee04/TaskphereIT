@@ -3,11 +3,10 @@ import React, { useState, useEffect } from "react";
 import taskIcon from "../../../assets/tasks-icon.png";
 import createTasksIcon from "../../../assets/create-tasks-icon.png";
 import searchIcon from "../../../assets/search-icon.png";
-
 import "../../Style/Adviser/Task/AdviserOralDef.css";
 
 // Import logic functions
-import { fetchTasksFromDB, handleCreateTask, handleUpdateStatus } from "../../../services/Adviser/AdCapsTask";
+//import { fetchTasksFromDB, handleCreateTask, handleUpdateStatus } from "../../../services/Adviser/AdCapsTask";
 
 const AdviserOralDef = () => {
   const [tasks, setTasks] = useState([]);
