@@ -13,6 +13,7 @@ import TitleDefense from "./TitleDefense";
 import ManuScript from "./ManuScript";
 import OralDefense from "./OralDefense";
 import Profile from "../Profile";
+import RoleTransfer from "./RolesTransfer";
 const InstructorDashboard = () => {
   const location = useLocation();  // ⬅️ Add this
   const [activePage, setActivePage] = useState("Dashboard");
@@ -45,6 +46,8 @@ useEffect(() => {
         return <AdviserCredentials />;
       case "Profile":
         return <Profile/>;
+        case "Role Transfer":
+        return <RoleTransfer/>;
 
       default:
         return <h4 className="text-center text-muted">INSTRUCTOR DASHBOARD</h4>;
