@@ -11,7 +11,7 @@ const MySwal = withReactContent(Swal);
 const customUser = JSON.parse(localStorage.getItem("customUser"));
 const managerId = customUser?.id;
  
-const ManagerOralDefense = () => {
+const ManagerOralRecord = () => {
     const [tasks, setTasks] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -700,4 +700,4 @@ const ManagerOralDefense = () => {
     );
 };
  
-export default ManagerOralDefense;
+export default ManagerOralRecord;
