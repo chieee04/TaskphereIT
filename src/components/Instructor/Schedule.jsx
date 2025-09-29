@@ -24,7 +24,7 @@ const Schedule = ({ setActivePage }) => {
     {
       title: 'Final Defense',
       icon: <BsCalendar2Check size={36} color="#3B0304" />,
-      onClick: () => alert('Clicked Final Defense'),
+      onClick: () => setActivePage('Final Defense'),
     },
   ];
 

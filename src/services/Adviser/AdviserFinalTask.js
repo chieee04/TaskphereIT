@@ -43,8 +43,6 @@ const teamOptions = `
 `;
  
  
-// Function para mag-update ng options at mag-enable ng select
-// Ginawa itong simple: tumatanggap ng pre-filtered data at property to populate.
 const updateSelectOptions = (selectId, dataToPopulate, propertyToPopulate) => {
   const selectElement = document.getElementById(selectId);
   if (!selectElement) return;

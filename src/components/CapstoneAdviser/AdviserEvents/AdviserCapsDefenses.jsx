@@ -1,135 +1,144 @@
-import React from 'react';
-import eventIcon from '../../../assets/events-icon.png';
+// src/components/AdviserCapsDefenses.jsx
+import React, { useEffect, useState } from "react";
+import { supabase } from "../../../supabaseClient";
+import eventIcon from "../../../assets/events-icon.png";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const AdviserCapsDefenses = () => {
-  return (
-    <div className="events-wrapper">
-      {/* Header */}
-      <h2 className="section-title">
-        <img 
-          src={eventIcon} 
-          alt="Events Icon" 
-          className="section-icon" 
-        />
-        Capstone Defenses
-      </h2>
-      <hr className="divider" />
+  const [oralDefenses, setOralDefenses] = useState([]);
+  const [finalDefenses, setFinalDefenses] = useState([]);
+  const [adviserId, setAdviserId] = useState(null);
+  const [accounts, setAccounts] = useState([]);
 
-      {/* Oral Defense */}
-      <h3 className="defense-header">Oral Defense</h3>
-      <div className="oral-defense-card">
-        <div className="team-name">Mendoza, Et Al</div>
+  // Get signed-in adviser ID
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("customUser"));
+    if (storedUser?.id) setAdviserId(storedUser.id);
+  }, []);
 
-        <div className="defense-row">
-          <div className="left-label">Title:</div>
-          <div className="right-label">Panelists:</div>
+  // Fetch all accounts for name resolution
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      const { data } = await supabase.from("user_credentials").select("*");
+      setAccounts(data || []);
+    };
+    fetchAccounts();
+  }, []);
+
+  // Fetch Oral & Final Defenses
+  useEffect(() => {
+    if (!adviserId) return;
+
+    const fetchDefenses = async () => {
+      // Oral Defense
+      const { data: oralData, error: oralError } = await supabase
+        .from("user_oraldef")
+        .select(
+          `*, 
+          manager:manager_id ( first_name, last_name, group_name ),
+          panel1:panelist1_id ( first_name, last_name ),
+          panel2:panelist2_id ( first_name, last_name ),
+          panel3:panelist3_id ( first_name, last_name )`
+        )
+        .eq("adviser_id", adviserId);
+      if (oralError) console.error("Oral defense fetch error:", oralError);
+      else setOralDefenses(oralData || []);
+
+      // Final Defense
+      const { data: finalData, error: finalError } = await supabase
+        .from("user_final_sched")
+        .select(
+          `*, 
+          manager:manager_id ( first_name, last_name, group_name ),
+          panel1:panelist1_id ( first_name, last_name ),
+          panel2:panelist2_id ( first_name, last_name ),
+          panel3:panelist3_id ( first_name, last_name )`
+        )
+        .eq("adviser_id", adviserId);
+      if (finalError) console.error("Final defense fetch error:", finalError);
+      else setFinalDefenses(finalData || []);
+    };
+
+    fetchDefenses();
+  }, [adviserId]);
+
+  const getFullName = (user) =>
+    user ? `${user.last_name}, ${user.first_name}` : "Unknown";
+
+  const renderDefenseCard = (defense) => (
+    <div key={defense.id} className="card mb-3 shadow-sm">
+      <div className="card-body">
+        <h5 className="card-title mb-3">
+          Team: {defense.manager?.group_name || "Unknown Team"}
+        </h5>
+
+        <div className="row mb-2">
+          <div className="col-md-3 fw-bold">Title:</div>
+          <div className="col-md-9">{defense.title || "Untitled"}</div>
         </div>
-        <div className="defense-row">
-          <div className="left-value">TaskSphere IT</div>
-          <div className="right-value">Anderson F. Dashiell</div>
+
+        <div className="row mb-2">
+          <div className="col-md-3 fw-bold">Panelists:</div>
+          <div className="col-md-9 d-flex flex-wrap gap-2">
+            <span className="badge bg-primary">{getFullName(defense.panel1 || "aasd")}</span>
+            <span className="badge bg-primary">{getFullName(defense.panel2 )|| "aasd"}</span>
+            <span className="badge bg-primary">{getFullName(defense.panel3)}</span>
+          </div>
         </div>
-        <div className="defense-row">
-          <div className="left-label">Date:</div>
-          <div className="right-value">Adam B. Apostol</div>
+
+        <div className="row mb-2">
+          <div className="col-md-3 fw-bold">Date:</div>
+          <div className="col-md-9">
+            {defense.date
+              ? new Date(defense.date).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "-"}
+          </div>
         </div>
-        <div className="defense-row">
-          <div className="left-value">March 31, 2025</div>
-          <div className="right-value">Von Jacob P. Yu</div>
+
+        <div className="row mb-2">
+          <div className="col-md-3 fw-bold">Time:</div>
+          <div className="col-md-9">{defense.time || "TBA"}</div>
         </div>
-        <div className="defense-row">
-          <div className="left-label">Time:</div>
-          <div className="right-label">Status:</div>
-        </div>
-        <div className="defense-row">
-          <div className="left-value">1:00 PM - 3:00 PM</div>
-          <div className="right-value">
-            <span className="status-pending">Pending</span>
+
+        <div className="row">
+          <div className="col-md-3 fw-bold">Status:</div>
+          <div className="col-md-9">
+            <span
+              className={`badge ${
+                defense.status === "Completed"
+                  ? "bg-success"
+                  : defense.status === "Missed"
+                  ? "bg-danger"
+                  : "bg-warning text-dark"
+              }`}
+            >
+              {defense.status || "Pending"}
+            </span>
           </div>
         </div>
       </div>
+    </div>
+  );
 
-      <style>{`
-        .events-wrapper {
-          width: 100%;
-          padding: 40px 20px;
-        }
+  return (
+    <div className="container my-4">
+      <div className="d-flex align-items-center mb-3">
+        <img src={eventIcon} alt="Events Icon" style={{ width: 40, marginRight: 10 }} />
+        <h2 className="mb-0">Capstone Defenses</h2>
+      </div>
+      <hr />
 
-        .section-title {
-          font-size: 20px;
-          font-weight: bold;
-          color: #3B0304;
-          margin-bottom: 10px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
+      {/* Oral Defense */}
+      <h4 className="mt-4 mb-3">Oral Defense</h4>
+      {oralDefenses.length > 0 ? oralDefenses.map(renderDefenseCard) : <p>No Oral Defense Scheduled</p>}
 
-        .section-icon {
-          width: 24px;
-          height: 24px;
-          object-fit: contain;
-        }
-
-        .divider {
-          border: none;
-          border-top: 2px solid #3B0304;
-          margin-bottom: 20px;
-        }
-
-        .defense-header {
-          font-weight: bold;
-          color: #3B0304;
-          margin-bottom: 10px;
-        }
-
-        .oral-defense-card {
-          background: #fff;
-          border-radius: 10px;
-          padding: 14px 16px;
-          border: 1px solid #ccc;
-          max-width: 400px;
-          width: 100%;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-          font-size: 13px;
-        }
-
-        .team-name {
-          font-weight: bold;
-          font-size: 14px;
-          margin-bottom: 8px;
-          color: #3B0304;
-          text-align: left;
-        }
-
-        .defense-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 2px 0;
-        }
-
-        .left-label,
-        .right-label {
-          font-weight: bold;
-          color: #000;
-        }
-
-        .left-value,
-        .right-value {
-          color: #000;
-        }
-
-        .status-pending {
-          display: inline-block;
-          padding: 3px 10px;
-          color: #3B0304;
-          border: 2px solid #3B0304;
-          border-radius: 4px;
-          font-weight: bold;
-          background-color: #fff;
-          font-size: 12px;
-        }
-      `}</style>
+      {/* Final Defense */}
+      <h4 className="mt-4 mb-3">Final Defense</h4>
+      {finalDefenses.length > 0 ? finalDefenses.map(renderDefenseCard) : <p>No Final Defense Scheduled</p>}
     </div>
   );
 };

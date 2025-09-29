@@ -2,205 +2,172 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../supabaseClient";
 import fileIcon from "../../assets/file-type-icon.png";
-import "../Style/Member/MemberEvents.css";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const MemberEvents = () => {
   const [customUser, setCustomUser] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const [manuscript, setManuscript] = useState(null);
   const [titleDef, setTitleDef] = useState(null);
+  const [oralDefenses, setOralDefenses] = useState([]);
+  const [finalDefenses, setFinalDefenses] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       const storedUser = JSON.parse(localStorage.getItem("customUser"));
-      if (!storedUser) {
-        console.error("No customUser found in localStorage");
-        return;
-      }
+      if (!storedUser) return setCustomUser(null);
       setCustomUser(storedUser);
 
-      // ✅ Get all accounts
-      const { data: accData, error: accError } = await supabase
-        .from("user_credentials")
-        .select("*");
-      if (accError) {
-        console.error("Accounts fetch error:", accError);
-        return;
-      }
-      setAccounts(accData);
+      // Fetch accounts
+      const { data: accData } = await supabase.from("user_credentials").select("*");
+      setAccounts(accData || []);
 
-      // ✅ Find manager of this member
-      const sameGroup = accData.filter(
-        (a) => a.group_number === storedUser.group_number
-      );
-      const manager = sameGroup.find((a) => a.user_roles === 1);
+      // Find manager
+      const sameGroup = accData.filter(a => a.group_number === storedUser.group_number);
+      const manager = sameGroup.find(a => a.user_roles === 1);
+      if (!manager) return;
+      const managerId = manager.id;
 
-      if (!manager) {
-        console.warn("No manager found for this member");
-        return;
-      }
-
-      // ✅ Fetch Manuscript sched
-      const { data: manuData, error: manuError } = await supabase
+      // Fetch Manuscript
+      const { data: manuData } = await supabase
         .from("user_manuscript_sched")
         .select("*")
-        .eq("manager_id", manager.id)
+        .eq("manager_id", managerId)
         .maybeSingle();
-      if (manuError) {
-        console.error("Manuscript fetch error:", manuError);
-      } else {
-        setManuscript(manuData);
-      }
+      setManuscript(manuData);
 
-      // ✅ Fetch Title Defense sched
-      const { data: titleDefData, error: titleDefError } = await supabase
+      // Fetch Title Defense
+      const { data: titleDefData } = await supabase
         .from("user_titledef")
         .select("*")
-        .eq("manager_id", manager.id)
+        .eq("manager_id", managerId)
         .maybeSingle();
-      if (titleDefError) {
-        console.error("Title Defense fetch error:", titleDefError);
-      } else {
-        setTitleDef(titleDefData);
-      }
+      setTitleDef(titleDefData);
+
+      // Fetch Oral Defense
+      const { data: oralData } = await supabase
+        .from("user_oraldef")
+        .select("*")
+        .eq("manager_id", managerId);
+      setOralDefenses(oralData || []);
+
+      // Fetch Final Defense
+      const { data: finalData } = await supabase
+        .from("user_final_sched")
+        .select("*")
+        .eq("manager_id", managerId);
+      setFinalDefenses(finalData || []);
     };
 
     fetchData();
   }, []);
 
-  // Helper para pangalan
   const getName = (id) => {
-    const person = accounts.find((a) => a.id === id);
+    const person = accounts.find(a => a.id === id);
     return person ? `${person.last_name}, ${person.first_name}` : "Unknown";
   };
 
-  return (
-    <div className="events-wrapper">
-      {/* Header */}
-      <h2 className="section-title">Events</h2>
-      <hr className="divider" />
-
-      {/* Manuscript Results */}
-      <h3 className="results-header">Manuscript Results</h3>
-      <div className="results-box">
-        <div className="results-table">
-          <div className="row header">
-            <div className="header-cell">No</div>
-            <div className="header-cell">Team</div>
-            <div className="header-cell">Title</div>
-            <div className="header-cell">Due Date</div>
-            <div className="header-cell">Time</div>
-            <div className="header-cell">Plagiarism</div>
-            <div className="header-cell">AI</div>
-            <div className="header-cell">File Uploaded</div>
-            <div className="header-cell">Status</div>
+  const renderDefenseCard = (def) => (
+    <div className="card mb-3 shadow-sm">
+      <div className="card-body">
+        <h5 className="card-title">{customUser?.group_name || "Unknown Team"}</h5>
+        <div className="row mb-2">
+          <div className="col-md-6 fw-bold">Title:</div>
+          <div className="col-md-6 fw-bold">Panelists:</div>
+        </div>
+        <div className="row mb-2">
+          <div className="col-md-6">{def.title || "Untitled"}</div>
+          <div className="col-md-6">{getName(def.panelist1_id)}</div>
+        </div>
+        <div className="row mb-2">
+          <div className="col-md-6 fw-bold">Date:</div>
+          <div className="col-md-6">{getName(def.panelist2_id)}</div>
+        </div>
+        <div className="row mb-2">
+          <div className="col-md-6">
+            {def.date
+              ? new Date(def.date).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "No Date"}
           </div>
-
-          {manuscript ? (
-            <div className="row">
-              <div className="cell">1.</div>
-              <div className="cell">
-                {customUser?.group_name || "Unknown Team"}
-              </div>
-              <div className="cell">
-                {customUser?.project_title || "No Title"}
-              </div>
-              <div className="cell">
-                {manuscript.date
-                  ? new Date(manuscript.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "No Date"}
-              </div>
-              <div className="cell">{manuscript.time || "N/A"}</div>
-              <div className="cell" style={{ color: "#3B0304" }}>
-                {manuscript.plagiarism || 0}%
-              </div>
-              <div className="cell" style={{ color: "#3B0304" }}>
-                {manuscript.ai || 0}%
-              </div>
-              <div className="cell">
-                {manuscript.file_name ? (
-                  <>
-                    <img
-                      src={fileIcon}
-                      alt="File Icon"
-                      style={{ width: "20px", height: "20px" }}
-                    />{" "}
-                    {manuscript.file_name}
-                  </>
-                ) : (
-                  "No File"
-                )}
-              </div>
-              <div className="cell">
-                <span className="status-passed">
-                  {manuscript.verdict || "Pending"}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="row">
-              <div className="cell" colSpan={9}>
-                No manuscript schedule found.
-              </div>
-            </div>
-          )}
+          <div className="col-md-6">{getName(def.panelist3_id)}</div>
+        </div>
+        <div className="row mb-2">
+          <div className="col-md-6 fw-bold">Time:</div>
+          <div className="col-md-6 fw-bold">Status:</div>
+        </div>
+        <div className="row">
+          <div className="col-md-6">{def.time || "N/A"}</div>
+          <div className="col-md-6">{def.status || "Pending"}</div>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <div className="container my-4">
+      <h2 className="mb-3">Events</h2>
+      <hr />
+
+      {/* Manuscript Results */}
+      <h4 className="mt-4">Manuscript Results</h4>
+      <div className="table-responsive mb-4">
+        <table className="table table-bordered table-hover align-middle">
+          <thead className="table-light">
+            <tr>
+              <th>No</th>
+              <th>Team</th>
+              <th>Title</th>
+              <th>Due Date</th>
+              <th>Time</th>
+              <th>Plagiarism</th>
+              <th>AI</th>
+              <th>File</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {manuscript ? (
+              <tr>
+                <td>1</td>
+                <td>{customUser?.group_name || "Unknown Team"}</td>
+                <td>{customUser?.project_title || "No Title"}</td>
+                <td>{manuscript.date ? new Date(manuscript.date).toLocaleDateString() : "No Date"}</td>
+                <td>{manuscript.time || "N/A"}</td>
+                <td>{manuscript.plagiarism || 0}%</td>
+                <td>{manuscript.ai || 0}%</td>
+                <td>
+                  {manuscript.file_name ? (
+                    <>
+                      <img src={fileIcon} alt="File" style={{ width: 20, height: 20 }} /> {manuscript.file_name}
+                    </>
+                  ) : "No File"}
+                </td>
+                <td>{manuscript.verdict || "Pending"}</td>
+              </tr>
+            ) : (
+              <tr>
+                <td colSpan={9} className="text-center">No manuscript schedule found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Title Defense */}
+      <h4 className="mt-4">Title Defense</h4>
+      {titleDef ? renderDefenseCard(titleDef) : <p className="text-muted">No title defense schedule found.</p>}
 
       {/* Oral Defense */}
-      <h3 className="defense-header">Oral Defense</h3>
-      {titleDef ? (
-        <div className="oral-defense-card">
-          <div className="team-name">
-            {customUser?.group_name || "Unknown Team"}
-          </div>
+      <h4 className="mt-4">Oral Defense</h4>
+      {oralDefenses.length > 0 ? oralDefenses.map(renderDefenseCard) : <p className="text-muted">No oral defense schedule found.</p>}
 
-          <div className="defense-row">
-            <div className="left-label">Title:</div>
-            <div className="right-label">Panelists:</div>
-          </div>
-          <div className="defense-row">
-            <div className="left-value">
-              {customUser?.project_title || "No Title"}
-            </div>
-            <div className="right-value">{getName(titleDef.panelist1_id)}</div>
-          </div>
-          <div className="defense-row">
-            <div className="left-label">Date:</div>
-            <div className="right-value">{getName(titleDef.panelist2_id)}</div>
-          </div>
-          <div className="defense-row">
-            <div className="left-value">
-              {titleDef.date
-                ? new Date(titleDef.date).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })
-                : "No Date"}
-            </div>
-            <div className="right-value">{getName(titleDef.panelist3_id)}</div>
-          </div>
-          <div className="defense-row">
-            <div className="left-label">Time:</div>
-            <div className="right-label">Status:</div>
-          </div>
-          <div className="defense-row">
-            <div className="left-value">{titleDef.time || "N/A"}</div>
-            <div className="right-value">
-              <span className="status-pending">
-                {titleDef.verdict || "Pending"}
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <p className="text-muted">No oral defense schedule found.</p>
-      )}
+      {/* Final Defense */}
+      <h4 className="mt-4">Final Defense</h4>
+      {finalDefenses.length > 0 ? finalDefenses.map(renderDefenseCard) : <p className="text-muted">No final defense schedule found.</p>}
     </div>
   );
 };
