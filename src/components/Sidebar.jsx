@@ -1,4 +1,3 @@
-// ✅ Sidebar.jsx
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -11,7 +10,10 @@ const Sidebar = ({ activeItem, onSelect }) => {
   const [showEnrollSubmenu, setShowEnrollSubmenu] = useState(false);
   const [user_roles, setuser_roles] = useState(null);
 
-  const { user, logout } = UserAuth();
+  // ✅ Huwag i-destructure agad
+  const auth = UserAuth();
+  const user = auth?.user || null;
+  const logout = auth?.logout || (() => {});
   const navigate = useNavigate();
 
   // ✅ Detect role
@@ -102,18 +104,20 @@ const Sidebar = ({ activeItem, onSelect }) => {
       </>
     );
   } else if (user_roles === 3) {
-    // Adviser
-    sidebarItems = (
-      <>
-        {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
-        {renderMenuItem('bi-people', 'Teams Summary', () => onSelect('Teams Summary'), activeItem === 'Teams Summary')}
-        {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
-        {renderMenuItem('bi-kanban', 'Teams Board', () => onSelect('Teams Board'), activeItem === 'Teams Board')}
-        {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
-        {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
-      </>
-    );
-  } else {
+  // Adviser
+  sidebarItems = (
+    <>
+      {renderMenuItem('bi-speedometer2', 'Dashboard', () => onSelect('Dashboard'), activeItem === 'Dashboard')}
+      {renderMenuItem('bi-people', 'Teams Summary', () => onSelect('Teams Summary'), activeItem === 'Teams Summary')}
+      {renderMenuItem('bi-list-task', 'Tasks', () => onSelect('Tasks'), activeItem === 'Tasks')}
+      {renderMenuItem('bi-kanban', 'Teams Board', () => onSelect('Teams Board'), activeItem === 'Teams Board')}
+      {renderMenuItem('bi-journal-text', 'Tasks Record', () => onSelect('Tasks Record'), activeItem === 'Tasks Record')}
+      {renderMenuItem('bi-calendar-event', 'Events', () => onSelect('Events'), activeItem === 'Events')}
+      {renderMenuItem('bi-person-circle', 'Profile', () => onSelect('Profile'), activeItem === 'Profile')}  {/* ← Added */}
+    </>
+  );
+}
+ else {
     return null;
   }
 

@@ -3,51 +3,50 @@ import { FaBell, FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/img/Logo.png";
 import { UserAuth } from "../Contex/AuthContext";
- 
+
 // --- TEMPORARY INLINE CSS STYLES FOR THE SWITCH ---
-// (Kept from previous steps for visual functionality)
 const switchContainerStyle = {
-    width: '70px', 
-    height: '24px', 
-    borderRadius: '12px', 
-    padding: '2px',
-    display: 'flex',
-    alignItems: 'center',
-    cursor: 'pointer',
-    position: 'relative',
-    transition: 'background-color 0.3s',
-    border: '1px solid black' 
+  width: "70px",
+  height: "24px",
+  borderRadius: "12px",
+  padding: "2px",
+  display: "flex",
+  alignItems: "center",
+  cursor: "pointer",
+  position: "relative",
+  transition: "background-color 0.3s",
+  border: "1px solid black",
 };
- 
 const sliderStyle = {
-    width: '20px', 
-    height: '20px', 
-    backgroundColor: 'white',
-    borderRadius: '50%',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-    transition: 'transform 0.3s'
+  width: "20px",
+  height: "20px",
+  backgroundColor: "white",
+  borderRadius: "50%",
+  boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+  transition: "transform 0.3s",
 };
- 
 const textStyle = {
-    position: 'absolute',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    fontSize: '10px', 
-    fontWeight: 'bold',
-    width: '100%',
-    textAlign: 'center', 
-    zIndex: 1
+  position: "absolute",
+  top: "50%",
+  transform: "translateY(-50%)",
+  fontSize: "10px",
+  fontWeight: "bold",
+  width: "100%",
+  textAlign: "center",
+  zIndex: 1,
 };
 // ----------------------------------------------------
- 
- 
+
 const Header = () => {
-  const { user, logout } = UserAuth();
+  const auth = UserAuth(); // ✅ i-check muna buong object
+  const user = auth?.user || null;
+  const logout = auth?.logout || (() => {}); // fallback para hindi mag-crash
+
   const navigate = useNavigate();
   const [activeUser, setActiveUser] = useState(null);
   const [showProfileCard, setShowProfileCard] = useState(false);
-  const [isSoloMode, setIsSoloMode] = useState(false); 
- 
+  const [isSoloMode, setIsSoloMode] = useState(false);
+
   useEffect(() => {
     if (user) {
       setActiveUser(user);
@@ -59,7 +58,7 @@ const Header = () => {
       else setActiveUser(null);
     }
   }, [user]);
- 
+
   const handleSignOut = async () => {
     await logout();
     localStorage.removeItem("customUser");
@@ -67,36 +66,36 @@ const Header = () => {
     setActiveUser(null);
     navigate("/");
   };
- 
+
   const handleProfileClick = () => {
     const customUser = JSON.parse(localStorage.getItem("customUser"));
- 
+
     if (customUser?.user_roles === 1) {
       navigate("/ManagerDashboard", { state: { activePage: "Profile" } });
     } else if (customUser?.user_roles === 2) {
       navigate("/MemberDashboard", { state: { activePage: "Profile" } });
     } else if (customUser?.user_roles === 3) {
       navigate("/AdviserDashboard", { state: { activePage: "Profile" } });
-      
     } else if (user) {
-    navigate("/InstructorDashboard", { state: { activePage: "Profile" } });
-    return;
-  }else {
+      navigate("/InstructorDashboard", { state: { activePage: "Profile" } });
+    } else {
       navigate("/Profile");
     }
   };
- 
+
   const getUserRole = () => {
     const roleId = activeUser?.user_roles;
     if (roleId === 1) return "Manager";
     if (roleId === 2) return "Member";
     if (roleId === 3) return "Adviser";
-    return "User"; 
+    return "User";
   };
- 
-  const userName = activeUser ? `${activeUser.firstName || ''} ${activeUser.lastName || ''}`.trim() : "Guest";
-  const userRole = getUserRole(); 
- 
+
+  const userName = activeUser
+    ? `${activeUser.firstName || ""} ${activeUser.lastName || ""}`.trim()
+    : "Guest";
+  const userRole = getUserRole();
+
   return (
     <div
       className="mb-3 px-4 py-2"
@@ -114,77 +113,74 @@ const Header = () => {
       <a href="/" style={{ display: "inline-block" }}>
         <img src={Logo} width="150" height="120" alt="Logo" />
       </a>
- 
+
       {activeUser && (
-        <div 
-          style={{ 
-            display: "flex", 
-            alignItems: "center", 
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
             marginRight: "10px",
-            gap: "10px" 
+            gap: "10px",
           }}
         >
- 
           {/* TEMPORARY INLINE SWITCH IMPLEMENTATION */}
-          <div 
-              style={{
-                  ...switchContainerStyle,
-                  backgroundColor: isSoloMode ? '#000000' : '#FFFFFF', 
-                  justifyContent: isSoloMode ? 'flex-end' : 'flex-start', 
-              }}
-              onClick={() => setIsSoloMode(!isSoloMode)}
+          <div
+            style={{
+              ...switchContainerStyle,
+              backgroundColor: isSoloMode ? "#000000" : "#FFFFFF",
+              justifyContent: isSoloMode ? "flex-end" : "flex-start",
+            }}
+            onClick={() => setIsSoloMode(!isSoloMode)}
           >
-              <div style={{
-                  ...textStyle,
-                  color: isSoloMode ? 'white' : 'black', 
-              }}>
-                  {isSoloMode ? 'SOLO' : 'TEAM'}
-              </div>
-              <div 
-                  style={{
-                      ...sliderStyle,
-                  }}
-              />
+            <div
+              style={{
+                ...textStyle,
+                color: isSoloMode ? "white" : "black",
+              }}
+            >
+              {isSoloMode ? "SOLO" : "TEAM"}
+            </div>
+            <div style={{ ...sliderStyle }} />
           </div>
- 
-          {/* Bell Icon: Size 20px */}
-          <button style={{ 
-            background: "none", 
-            border: "none", 
-            cursor: "pointer", 
-            color: "black" 
-          }}>
-            <FaBell size={20} /> 
+
+          {/* Bell Icon */}
+          <button
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "black",
+            }}
+          >
+            <FaBell size={20} />
           </button>
- 
-          {/* Profile Logo Container: Handles hover logic */}
+
+          {/* Profile Logo */}
           <div
             style={{ position: "relative" }}
             onMouseEnter={() => setShowProfileCard(true)}
             onMouseLeave={() => setShowProfileCard(false)}
           >
-            {/* Profile Icon: Size 20px */}
             <button
-              style={{ 
-                background: "none", 
-                border: "none", 
-                cursor: "pointer", 
-                display: 'flex', 
-                alignItems: 'center',
-                color: "black" 
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                color: "black",
               }}
               onClick={handleProfileClick}
             >
               <FaUserCircle size={20} />
             </button>
- 
-            {/* ✅ MODIFIED Profile Card with new Header structure */}
+
             {showProfileCard && (
               <div
                 style={{
                   position: "absolute",
                   top: "calc(100% + 10px)",
-                  right: "-5px", 
+                  right: "-5px",
                   width: "250px",
                   backgroundColor: "white",
                   borderRadius: "8px",
@@ -193,35 +189,67 @@ const Header = () => {
                   zIndex: 1000,
                 }}
               >
-                {/* 1. New Profile Header with Underline */}
-                <div style={{ 
-                    marginBottom: '10px',
-                    paddingBottom: '5px',
-                    borderBottom: '1px solid black' 
-                }}>
-                    <p style={{ 
-                        margin: 0, 
-                        fontWeight: 'bold', 
-                        fontSize: '18px', 
-                        color: 'black' 
-                    }}>
-                        Profile
-                    </p>
+                <div
+                  style={{
+                    marginBottom: "10px",
+                    paddingBottom: "5px",
+                    borderBottom: "1px solid black",
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      fontWeight: "bold",
+                      fontSize: "18px",
+                      color: "black",
+                    }}
+                  >
+                    Profile
+                  </p>
                 </div>
- 
-                {/* 2. Reverted Core Profile Details */}
+
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <FaUserCircle size={28} style={{ marginRight: "10px", color: "#6c757d" }} />
+                  <FaUserCircle
+                    size={28}
+                    style={{ marginRight: "10px", color: "#6c757d" }}
+                  />
                   <div style={{ lineHeight: "1.2" }}>
-                    <p style={{ margin: 0, fontWeight: "bold", fontSize: "16px" }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontWeight: "bold",
+                        fontSize: "16px",
+                      }}
+                    >
                       {userName}
                     </p>
-                    {/* Role is placed below name */}
-                    <p style={{ margin: 0, fontSize: "12px", color: "#6c757d" }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "12px",
+                        color: "#6c757d",
+                      }}
+                    >
                       {userRole}
                     </p>
                   </div>
                 </div>
+
+                <button
+                  onClick={handleSignOut}
+                  style={{
+                    marginTop: "10px",
+                    width: "100%",
+                    padding: "8px",
+                    backgroundColor: "#dc3545",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Sign Out
+                </button>
               </div>
             )}
           </div>
@@ -230,5 +258,5 @@ const Header = () => {
     </div>
   );
 };
- 
+
 export default Header;
